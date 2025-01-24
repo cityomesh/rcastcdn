@@ -7,6 +7,7 @@ import {
   MantineProvider,
   mantineHtmlProps,
 } from "@mantine/core";
+import { NimbleServerHeader } from "./components/NimbleServerHeader/nimble-server-header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,10 @@ export default function RootLayout({
         <ColorSchemeScript />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <MantineProvider>{children}</MantineProvider>
+        <MantineProvider>
+          <NimbleServerHeader />
+          {children}
+        </MantineProvider>
       </body>
     </html>
   );
