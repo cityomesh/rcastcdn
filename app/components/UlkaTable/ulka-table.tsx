@@ -6,7 +6,6 @@ import { useState } from "react";
 import "./ulka-table.css";
 import { ActionIcon, Group, Stack, Paper } from "@mantine/core";
 import { IconQuestionMark, IconPencil, IconTrash } from "@tabler/icons-react";
-import { NimbleServerHeader } from "../NimbleServerHeader/nimble-server-header";
 
 interface UlkaRedirectData {
   requestPath: string;
@@ -89,7 +88,6 @@ export const UlkaTable = ({ data }: UlkaTableProps) => {
     >
       <Stack gap="lg">
         <Group justify="space-between" align="center">
-          <NimbleServerHeader />
           {selectedRows.length > 0 && (
             <ActionIcon
               variant="filled"
