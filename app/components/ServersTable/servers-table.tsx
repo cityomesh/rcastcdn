@@ -3,23 +3,18 @@
 import { useState } from "react";
 import { AgGridTable } from "../AgGridTable/ag-grid-table";
 import { ColDef } from "ag-grid-community";
-import { Button, Group, Text } from "@mantine/core";
+import { Button, Group, Text, ActionIcon, Tooltip } from "@mantine/core";
 import { ServerForm } from "../ServerForm/server-form";
 import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
-
-interface Server {
-  id: string;
-  displayName: string;
-  ipAddress: string;
-  sshUsername: string;
-  sshPassword: string;
-  port: number;
-}
+import { Server } from "@/app/contexts/DataContext";
 
 interface ServersTableProps {
   data: Server[];
-  onCreateServer: (server: Omit<Server, "id">) => void;
-  onUpdateServer: (id: string, server: Omit<Server, "id">) => void;
+  onCreateServer: (server: Omit<Server, "id" | "createdAt">) => void;
+  onUpdateServer: (
+    id: string,
+    server: Omit<Server, "id" | "createdAt">
+  ) => void;
   onDeleteServer: (id: string) => void;
 }
 
@@ -60,36 +55,61 @@ export const ServersTable = ({
       sortable: true,
     },
     {
+      headerName: "Origin Server",
+      field: "originIpWithPort",
+      flex: 1,
+      sortable: true,
+    },
+    {
+      headerName: "SSH Username",
+      field: "sshUsername",
+      flex: 1,
+      sortable: true,
+    },
+    {
+      headerName: "Created At",
+      field: "createdAt",
+      flex: 1,
+      sortable: true,
+      valueFormatter: (params) => {
+        const date = new Date(params.value);
+        return date.toLocaleString();
+      },
+    },
+    {
       headerName: "Actions",
       field: "actions",
       flex: 1,
       sortable: false,
       cellRenderer: (params: { data: Server }) => (
-        <Group gap="xs">
-          <Button
-            variant="subtle"
-            size="sm"
-            leftSection={<IconEdit size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedServer(params.data);
-              setEditModalOpen(true);
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="subtle"
-            color="red"
-            size="sm"
-            leftSection={<IconTrash size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteServer(params.data.id);
-            }}
-          >
-            Delete
-          </Button>
+        <Group gap="xs" justify="flex-end" pr="md">
+          <Tooltip label="Edit Server">
+            <ActionIcon
+              variant="light"
+              color="blue"
+              size="lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedServer(params.data);
+                setEditModalOpen(true);
+              }}
+            >
+              <IconEdit style={{ width: "70%", height: "70%" }} stroke={1.5} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete Server">
+            <ActionIcon
+              variant="light"
+              color="red"
+              size="lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteServer(params.data.id);
+              }}
+            >
+              <IconTrash style={{ width: "70%", height: "70%" }} stroke={1.5} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       ),
     },
@@ -101,6 +121,8 @@ export const ServersTable = ({
         <Button
           leftSection={<IconPlus size={16} />}
           onClick={() => setCreateModalOpen(true)}
+          variant="filled"
+          color="blue"
         >
           Add Server
         </Button>

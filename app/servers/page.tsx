@@ -1,38 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Paper, Stack, Title } from "@mantine/core";
 import { ServersTable } from "../components/ServersTable/servers-table";
-
-interface Server {
-  id: string;
-  displayName: string;
-  ipAddress: string;
-  sshUsername: string;
-  sshPassword: string;
-  port: number;
-  createdAt: string;
-}
+import { useData, Server } from "../contexts/DataContext";
 
 export default function ServersPage() {
-  const [servers, setServers] = useState<Server[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchServers = async () => {
-    try {
-      const response = await fetch("/api/servers");
-      const data = await response.json();
-      setServers(data);
-    } catch (error) {
-      console.error("Error fetching servers:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchServers();
-  }, []);
+  const { servers, loading, refreshData } = useData();
 
   const handleCreateServer = async (
     serverData: Omit<Server, "id" | "createdAt">
@@ -51,7 +24,7 @@ export default function ServersPage() {
         throw new Error(error.error || "Failed to create server");
       }
 
-      fetchServers();
+      await refreshData();
     } catch (error) {
       console.error("Error creating server:", error);
     }
@@ -75,7 +48,7 @@ export default function ServersPage() {
         throw new Error(error.error || "Failed to delete server");
       }
 
-      fetchServers();
+      await refreshData();
     } catch (error) {
       console.error("Error deleting server:", error);
     }

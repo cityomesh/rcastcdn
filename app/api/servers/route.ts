@@ -9,6 +9,7 @@ interface Server {
   sshUsername: string;
   sshPassword: string;
   port: number;
+  originIpWithPort: string;
   createdAt: string;
 }
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       "sshUsername",
       "sshPassword",
       "port",
+      "originIpWithPort",
     ];
     for (const field of requiredFields) {
       if (!data[field]) {
@@ -77,6 +79,35 @@ export async function POST(request: Request) {
     if (!ipRegex.test(data.ipAddress)) {
       return NextResponse.json(
         { error: "Invalid IP address format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate originIpWithPort format
+    const ipPortRegex = /^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$/;
+    if (!ipPortRegex.test(data.originIpWithPort)) {
+      return NextResponse.json(
+        { error: "Invalid origin IP:Port format (e.g., 192.168.1.1:8080)" },
+        { status: 400 }
+      );
+    }
+    const [ipPart, portPart] = data.originIpWithPort.split(":");
+    // Validate IP part
+    const ipOctets = ipPart.split(".").map(Number);
+    const isValidIp = ipOctets.every(
+      (octet: number) => octet >= 0 && octet <= 255
+    );
+    if (!isValidIp) {
+      return NextResponse.json(
+        { error: "Invalid origin IP address format" },
+        { status: 400 }
+      );
+    }
+    // Validate port part
+    const portNum = parseInt(portPart);
+    if (portNum < 1 || portNum > 65535) {
+      return NextResponse.json(
+        { error: "Origin port must be between 1 and 65535" },
         { status: 400 }
       );
     }

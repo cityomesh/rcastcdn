@@ -1,6 +1,6 @@
 "use client";
 
-import { Title, Group, Text, Anchor } from "@mantine/core";
+import { Title, Group, Text } from "@mantine/core";
 import Link from "next/link";
 
 export const NimbleServerHeader = () => {
@@ -23,17 +23,12 @@ export const NimbleServerHeader = () => {
           Servers
         </Link>
         <Text c="white">•</Text>
-        <Anchor href="#" c="white">
-          Add re-streaming route
-        </Anchor>
-        <Text c="white">•</Text>
-        <Anchor href="#" c="white">
-          Add progressive download route
-        </Anchor>
-        <Text c="white">•</Text>
-        <Anchor href="#" c="white">
-          Add geo redirect
-        </Anchor>
+        <Link
+          href="/route-servers"
+          style={{ color: "white", textDecoration: "none" }}
+        >
+          Route-Server Assignments
+        </Link>
       </Group>
     </Group>
   );

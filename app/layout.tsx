@@ -8,6 +8,7 @@ import {
   mantineHtmlProps,
 } from "@mantine/core";
 import { NimbleServerHeader } from "./components/NimbleServerHeader/nimble-server-header";
+import { DataProvider } from "./contexts/DataContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -37,8 +38,10 @@ export default function RootLayout({
             headings: { fontFamily: inter.style.fontFamily },
           }}
         >
-          <NimbleServerHeader />
-          {children}
+          <DataProvider>
+            <NimbleServerHeader />
+            {children}
+          </DataProvider>
         </MantineProvider>
       </body>
     </html>

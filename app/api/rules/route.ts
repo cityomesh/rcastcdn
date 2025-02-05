@@ -40,8 +40,6 @@ export async function GET() {
         });
 
         stream.on("end", () => {
-          console.log("Raw file content:", data);
-
           try {
             const jsonString = data.split("\n").slice(1).join("\n");
             const rulesData = JSON.parse(jsonString);

@@ -12,6 +12,7 @@ import {
   Divider,
   Paper,
   SimpleGrid,
+  Alert,
 } from "@mantine/core";
 import {
   IconServer,
@@ -19,6 +20,7 @@ import {
   IconUser,
   IconLock,
   IconNumbers,
+  IconAlertCircle,
 } from "@tabler/icons-react";
 
 interface ServerFormData {
@@ -27,6 +29,7 @@ interface ServerFormData {
   sshUsername: string;
   sshPassword: string;
   port: number;
+  originIpWithPort: string;
 }
 
 interface ServerFormProps {
@@ -51,24 +54,75 @@ export function ServerForm({
       sshUsername: "",
       sshPassword: "",
       port: 22,
+      originIpWithPort: "",
     },
     validate: {
-      displayName: (value: string) =>
-        !value ? "Display name is required" : null,
+      displayName: (value: string) => {
+        if (!value) return "Display name is required";
+        if (value.length < 3)
+          return "Display name must be at least 3 characters";
+        if (value.length > 50)
+          return "Display name must be at most 50 characters";
+        return null;
+      },
       ipAddress: (value: string) => {
         if (!value) return "IP address is required";
-        // Basic IP address validation
+        // Validate IP address format
         const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-        return !ipRegex.test(value) ? "Invalid IP address format" : null;
+        if (!ipRegex.test(value)) return "Invalid IP address format";
+        // Validate each octet
+        const octets = value.split(".").map(Number);
+        if (!octets.every((octet) => octet >= 0 && octet <= 255)) {
+          return "IP address octets must be between 0 and 255";
+        }
+        return null;
       },
-      sshUsername: (value: string) =>
-        !value ? "SSH username is required" : null,
-      sshPassword: (value: string) =>
-        !value ? "SSH password is required" : null,
+      sshUsername: (value: string) => {
+        if (!value) return "SSH username is required";
+        if (value.length < 3)
+          return "SSH username must be at least 3 characters";
+        if (value.length > 32)
+          return "SSH username must be at most 32 characters";
+        if (!/^[a-z_][a-z0-9_-]*[$]?$/.test(value)) {
+          return "Invalid SSH username format";
+        }
+        return null;
+      },
+      sshPassword: (value: string) => {
+        if (!value) return "SSH password is required";
+        if (value.length < 8) return "Password must be at least 8 characters";
+        if (value.length > 128)
+          return "Password must be at most 128 characters";
+        // Check for at least one uppercase, one lowercase, one number
+        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+          return "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+        }
+        return null;
+      },
       port: (value: number) => {
         if (!value) return "Port is required";
         if (value < 1 || value > 65535)
           return "Port must be between 1 and 65535";
+        return null;
+      },
+      originIpWithPort: (value: string) => {
+        if (!value) return "Origin IP with port is required";
+        // Validate IP:Port format (e.g., 192.168.1.1:8080)
+        const ipPortRegex = /^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$/;
+        if (!ipPortRegex.test(value)) {
+          return "Invalid format. Expected: IP:Port (e.g., 192.168.1.1:8080)";
+        }
+        // Validate IP part
+        const [ipPart, portPart] = value.split(":");
+        const ipOctets = ipPart.split(".").map(Number);
+        if (!ipOctets.every((octet) => octet >= 0 && octet <= 255)) {
+          return "Origin IP address octets must be between 0 and 255";
+        }
+        // Validate port part
+        const port = parseInt(portPart);
+        if (port < 1 || port > 65535) {
+          return "Origin port must be between 1 and 65535";
+        }
         return null;
       },
     },
@@ -121,12 +175,12 @@ export function ServerForm({
                 <TextInput
                   required
                   label={<Text fw={500}>Display Name</Text>}
-                  placeholder="e.g., Production Server"
+                  placeholder="e.g., Edge-London-01"
                   leftSection={<IconServer size={16} />}
                   {...form.getInputProps("displayName")}
                   description={
                     <Text component="span" size="xs" c="dimmed">
-                      A friendly name to identify your server
+                      A descriptive name including location or purpose
                     </Text>
                   }
                   styles={{
@@ -150,7 +204,7 @@ export function ServerForm({
                   {...form.getInputProps("ipAddress")}
                   description={
                     <Text component="span" size="xs" c="dimmed">
-                      The IP address of your server
+                      The edge server&apos;s IP address
                     </Text>
                   }
                   styles={{
@@ -176,7 +230,32 @@ export function ServerForm({
                   {...form.getInputProps("port")}
                   description={
                     <Text component="span" size="xs" c="dimmed">
-                      SSH port number (default: 22)
+                      Edge server&apos;s listening port
+                    </Text>
+                  }
+                  styles={{
+                    input: {
+                      "&:focus": {
+                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)",
+                      },
+                      fontSize: "0.95rem",
+                    },
+                    label: {
+                      marginBottom: 4,
+                    },
+                  }}
+                />
+
+                <TextInput
+                  required
+                  label={<Text fw={500}>Origin IP with Port</Text>}
+                  placeholder="192.168.1.1:8080"
+                  leftSection={<IconNetwork size={16} />}
+                  {...form.getInputProps("originIpWithPort")}
+                  description={
+                    <Text component="span" size="xs" c="dimmed">
+                      The origin server&apos;s IP and port (e.g.,
+                      192.168.1.1:8080)
                     </Text>
                   }
                   styles={{
@@ -239,7 +318,7 @@ export function ServerForm({
                   {...form.getInputProps("sshPassword")}
                   description={
                     <Text component="span" size="xs" c="dimmed">
-                      Password for SSH authentication
+                      Strong password for SSH authentication
                     </Text>
                   }
                   styles={{
@@ -254,6 +333,18 @@ export function ServerForm({
                     },
                   }}
                 />
+
+                <Alert icon={<IconAlertCircle size={16} />} color="blue">
+                  <Text size="sm" mb={8} fw={500}>
+                    Security Best Practices
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    • Use strong passwords with mixed case, numbers & symbols
+                    <br />
+                    • Regularly rotate SSH credentials
+                    <br />• Consider using SSH keys for enhanced security
+                  </Text>
+                </Alert>
               </Stack>
             </Paper>
           </SimpleGrid>

@@ -7,18 +7,26 @@ import "./ulka-table.css";
 import { ActionIcon, Group, Stack, Paper } from "@mantine/core";
 import { IconQuestionMark, IconPencil, IconTrash } from "@tabler/icons-react";
 
-interface UlkaRedirectData {
-  requestPath: string;
-  redirectPath: string;
-  assignedServer: string;
+interface Server {
+  id: string;
+  display_name: string;
+}
+
+interface RouteServerAssignment {
+  id?: string;
+  priority: number;
+  route_kind: string;
+  from: string;
+  to: string;
+  servers: Server[];
 }
 
 interface UlkaTableProps {
-  data: UlkaRedirectData[];
+  data: RouteServerAssignment[];
 }
 
 export const UlkaTable = ({ data }: UlkaTableProps) => {
-  const [selectedRows, setSelectedRows] = useState<UlkaRedirectData[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RouteServerAssignment[]>([]);
 
   const columnDefs: ColDef[] = [
     {
@@ -31,22 +39,28 @@ export const UlkaTable = ({ data }: UlkaTableProps) => {
     },
     {
       headerName: "Request comes to ...",
-      field: "requestPath",
+      field: "from",
       flex: 1,
       sortable: true,
     },
     {
       headerName: "... and is redirected to",
-      field: "redirectPath",
+      field: "to",
       flex: 1.5,
       sortable: true,
     },
     {
       headerName: "Assigned servers",
-      field: "assignedServer",
+      field: "servers",
       flex: 1,
       sortable: true,
       cellStyle: { color: "#097bd3" },
+      valueFormatter: (params: { value: Server[] | undefined }) => {
+        if (!params.value) return "";
+        return params.value
+          .map((server: Server) => server.display_name)
+          .join(", ");
+      },
     },
     {
       headerName: "",
@@ -72,7 +86,7 @@ export const UlkaTable = ({ data }: UlkaTableProps) => {
   const onSelectionChanged = (event: SelectionChangedEvent) => {
     const selectedNodes = event.api.getSelectedNodes();
     const selectedData = selectedNodes.map(
-      (node) => node.data as UlkaRedirectData
+      (node) => node.data as RouteServerAssignment
     );
     setSelectedRows(selectedData);
   };
