@@ -93,9 +93,9 @@ export function ServerForm({
         if (value.length < 8) return "Password must be at least 8 characters";
         if (value.length > 128)
           return "Password must be at most 128 characters";
-        // Check for at least one uppercase, one lowercase, one number
-        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-          return "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+        // Check for at least one lowercase and one number
+        if (!/(?=.*[a-z])(?=.*\d)/.test(value)) {
+          return "Password must contain at least one lowercase letter and one number";
         }
         return null;
       },

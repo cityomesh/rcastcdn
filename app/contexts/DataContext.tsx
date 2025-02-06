@@ -1,96 +1,78 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
-
-export interface Server {
-  id: string;
-  displayName: string;
-  ipAddress: string;
-  sshUsername: string;
-  sshPassword: string;
-  port: number;
-  originIpWithPort: string;
-  createdAt: string;
-}
-
-export interface Route {
-  host: string;
-  path: string;
-  origin: string;
-  origin_path: string;
-  use_ssl: string;
-  geo: string;
-  range: string;
-  playlist_caching_interval: string;
-}
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { Server, Route } from "../types/server";
 
 interface DataContextType {
-  routes: Route[];
   servers: Server[];
+  routes: Route[];
   loading: boolean;
-  error: string | null;
   refreshData: () => Promise<void>;
 }
 
-const DataContext = createContext<DataContextType | undefined>(undefined);
+const DataContext = createContext<DataContextType>({
+  servers: [],
+  routes: [],
+  loading: true,
+  refreshData: async () => {},
+});
 
-export function DataProvider({ children }: { children: ReactNode }) {
-  const [routes, setRoutes] = useState<Route[]>([]);
+export function DataProvider({ children }: { children: React.ReactNode }) {
   const [servers, setServers] = useState<Server[]>([]);
+  const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const refreshData = async () => {
     try {
       setLoading(true);
-      setError(null);
+      console.log("Fetching data...");
 
-      const rulesResponse = await fetch("/api/rules");
-      const rulesData = await rulesResponse.json();
-      if (rulesData.success && rulesData.data?.SyncResponse?.Routes) {
-        setRoutes(rulesData.data.SyncResponse.Routes);
+      // Fetch servers and routes in parallel
+      const [serversResponse, rulesResponse] = await Promise.all([
+        fetch("/api/servers"),
+        fetch("/api/rules"),
+      ]);
+
+      if (!rulesResponse.ok) {
+        throw new Error("Failed to fetch routes from SSH server");
       }
 
-      const serversResponse = await fetch("/api/servers");
-      const serversData = await serversResponse.json();
-      setServers(serversData || []);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setError("Failed to fetch data");
+      const [serversData, rulesData] = await Promise.all([
+        serversResponse.json(),
+        rulesResponse.json(),
+      ]);
+
+      console.log("Rules data received:", rulesData);
+
+      if (!rulesData.success) {
+        throw new Error(rulesData.error || "Failed to fetch routes");
+      }
+
+      setServers(serversData);
+
+      // Extract routes from the SSH response
+      const routes = rulesData.data?.SyncResponse?.Routes || [];
+      console.log("Extracted routes:", routes);
+
+      setRoutes(routes);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setRoutes([]); // Reset routes on error
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    refreshData();
   }, []);
 
   return (
-    <DataContext.Provider
-      value={{
-        routes,
-        servers,
-        loading,
-        error,
-        refreshData: fetchData,
-      }}
-    >
+    <DataContext.Provider value={{ servers, routes, loading, refreshData }}>
       {children}
     </DataContext.Provider>
   );
 }
 
-export function useData() {
-  const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error("useData must be used within a DataProvider");
-  }
-  return context;
-}
+export const useData = () => useContext(DataContext);
+export type { Server };

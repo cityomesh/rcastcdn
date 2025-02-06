@@ -23,6 +23,10 @@ export const NimbleServerHeader = () => {
           Servers
         </Link>
         <Text c="white">•</Text>
+        <Link href="/routes" style={{ color: "white", textDecoration: "none" }}>
+          Routes
+        </Link>
+        <Text c="white">•</Text>
         <Link
           href="/route-servers"
           style={{ color: "white", textDecoration: "none" }}

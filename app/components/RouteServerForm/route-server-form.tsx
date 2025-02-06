@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useData } from "@/app/contexts/DataContext";
 import { ComboboxItem } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
+import { StreamType } from "@/app/types/server";
 
 interface RouteServerAssignment {
   id?: string;
@@ -46,6 +47,7 @@ interface ValidationErrors {
   from?: string;
   to?: string;
   servers?: string;
+  route_kind?: string;
   general?: string;
 }
 
@@ -53,6 +55,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
   const { routes, servers, loading } = useData();
   const [selectedRoute, setSelectedRoute] = useState("");
   const [selectedServerIds, setSelectedServerIds] = useState<string[]>([]);
+  const [selectedRouteKind, setSelectedRouteKind] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
@@ -68,26 +71,37 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     setValidationErrors({});
   };
 
+  const handleRouteKindChange = (value: string | null) => {
+    setSelectedRouteKind(value || "");
+    setValidationErrors({});
+  };
+
   const validateRouteAssignment = (
     values: RouteServerAssignment
   ): ValidationErrors => {
     const errors: ValidationErrors = {};
 
-    // 1. Find matching route
+    // 1. Validate route kind
+    if (!Object.values(StreamType).includes(values.route_kind as StreamType)) {
+      errors.route_kind = "Invalid stream type selected";
+      return errors;
+    }
+
+    // 2. Find matching route
     const matchingRoute = routes.find((route) => route.path === values.from);
     if (!matchingRoute) {
       errors.from = "No matching route found";
       return errors;
     }
 
-    // 2. Validate 'to' field matches origin
+    // 3. Validate 'to' field matches origin
     const expectedTo = `${matchingRoute.origin}${matchingRoute.origin_path}`;
     if (values.to !== expectedTo) {
       errors.to = "Origin path mismatch";
       return errors;
     }
 
-    // 3. Validate servers have correct origin configuration
+    // 4. Validate servers have correct origin configuration
     for (const serverRef of values.servers) {
       const fullServer = servers.find((s) => s.id === serverRef.id);
       if (!fullServer) {
@@ -108,7 +122,11 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedRoute || selectedServerIds.length === 0) {
+    if (
+      !selectedRoute ||
+      selectedServerIds.length === 0 ||
+      !selectedRouteKind
+    ) {
       return;
     }
 
@@ -131,7 +149,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
       const formattedData = {
         id: uuidv4(),
         priority: 0,
-        route_kind: "re_streaming",
+        route_kind: selectedRouteKind,
         from,
         to,
         servers: selectedServers,
@@ -148,6 +166,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
       // Reset form
       setSelectedRoute("");
       setSelectedServerIds([]);
+      setSelectedRouteKind("");
       setValidationErrors({});
     } catch (error) {
       setValidationErrors({
@@ -172,6 +191,8 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     );
   }
 
+  console.log("Routes data received:", routes);
+
   // First, deduplicate routes based on path and origin
   const uniqueRoutes = new Map();
   routes.forEach((route) => {
@@ -180,6 +201,8 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
       uniqueRoutes.set(key, route);
     }
   });
+
+  console.log("Unique routes:", Array.from(uniqueRoutes.values()));
 
   // Group unique routes by host
   const routesByHost = Array.from(uniqueRoutes.values()).reduce(
@@ -197,6 +220,8 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     {} as Record<string, RouteOption[]>
   );
 
+  console.log("Routes by host:", routesByHost);
+
   // Convert to Mantine's group format
   const routeOptions = Object.entries(routesByHost).map(([host, items]) => ({
     group: host,
@@ -207,6 +232,11 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     value: server.id,
     label: server.displayName,
     description: `${server.ipAddress}:${server.port}`,
+  }));
+
+  const streamTypeOptions = Object.values(StreamType).map((type) => ({
+    value: type,
+    label: type,
   }));
 
   return (
@@ -233,6 +263,22 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
           error={
             validationErrors.from ||
             (!selectedRoute ? "Route is required" : null)
+          }
+          mb="md"
+        />
+
+        <Select
+          label="Stream Type"
+          description="Select the type of stream"
+          placeholder="Choose stream type"
+          data={streamTypeOptions}
+          value={selectedRouteKind}
+          onChange={handleRouteKindChange}
+          required
+          clearable
+          error={
+            validationErrors.route_kind ||
+            (!selectedRouteKind ? "Stream type is required" : null)
           }
           mb="md"
         />
@@ -270,7 +316,11 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
           <Button
             type="submit"
             loading={submitting}
-            disabled={!selectedRoute || selectedServerIds.length === 0}
+            disabled={
+              !selectedRoute ||
+              selectedServerIds.length === 0 ||
+              !selectedRouteKind
+            }
           >
             Create Assignment
           </Button>

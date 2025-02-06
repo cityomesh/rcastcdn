@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { StreamType } from "@/app/types/server";
 
 interface Server {
   id: string;
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
     const assignment = await request.json();
     console.log("Received assignment:", assignment);
 
-    // 1. Validate required fields
+    // 1. Validate required fields and route_kind
     if (
       !assignment.from ||
       !assignment.to ||
@@ -96,6 +97,22 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "Missing required fields: from, to, servers, route_kind",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate route_kind
+    if (
+      !Object.values(StreamType).includes(assignment.route_kind as StreamType)
+    ) {
+      console.log("Invalid route_kind:", assignment.route_kind);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid route_kind. Must be one of: ${Object.values(
+            StreamType
+          ).join(", ")}`,
         },
         { status: 400 }
       );

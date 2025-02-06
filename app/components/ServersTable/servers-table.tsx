@@ -3,9 +3,14 @@
 import { useState } from "react";
 import { AgGridTable } from "../AgGridTable/ag-grid-table";
 import { ColDef } from "ag-grid-community";
-import { Button, Group, Text, ActionIcon, Tooltip } from "@mantine/core";
+import { Button, Group, Text, ActionIcon, Badge } from "@mantine/core";
 import { ServerForm } from "../ServerForm/server-form";
-import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
+import {
+  IconEdit,
+  IconPlus,
+  IconTrash,
+  IconRefresh,
+} from "@tabler/icons-react";
 import { Server } from "@/app/contexts/DataContext";
 
 interface ServersTableProps {
@@ -16,6 +21,7 @@ interface ServersTableProps {
     server: Omit<Server, "id" | "createdAt">
   ) => void;
   onDeleteServer: (id: string) => void;
+  onCheckHealth: (id: string) => void;
 }
 
 export const ServersTable = ({
@@ -23,6 +29,7 @@ export const ServersTable = ({
   onCreateServer,
   onUpdateServer,
   onDeleteServer,
+  onCheckHealth,
 }: ServersTableProps) => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -37,7 +44,7 @@ export const ServersTable = ({
 
   const columnDefs: ColDef[] = [
     {
-      headerName: "Name",
+      headerName: "Display Name",
       field: "displayName",
       flex: 1,
       sortable: true,
@@ -51,65 +58,76 @@ export const ServersTable = ({
     {
       headerName: "Port",
       field: "port",
-      flex: 1,
+      width: 100,
       sortable: true,
     },
     {
-      headerName: "Origin Server",
+      headerName: "Origin IP:Port",
       field: "originIpWithPort",
       flex: 1,
       sortable: true,
     },
     {
-      headerName: "SSH Username",
-      field: "sshUsername",
-      flex: 1,
-      sortable: true,
+      headerName: "Status",
+      field: "status",
+      width: 120,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cellRenderer: (params: any) => (
+        <Badge
+          color={
+            params.value === "online"
+              ? "green"
+              : params.value === "offline"
+              ? "red"
+              : "yellow"
+          }
+        >
+          {params.value || "unknown"}
+        </Badge>
+      ),
     },
     {
-      headerName: "Created At",
-      field: "createdAt",
+      headerName: "Last Checked",
+      field: "lastChecked",
       flex: 1,
       sortable: true,
-      valueFormatter: (params) => {
-        const date = new Date(params.value);
-        return date.toLocaleString();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      valueFormatter: (params: any) => {
+        if (!params.value) return "Never";
+        return new Date(params.value).toLocaleString();
       },
     },
     {
       headerName: "Actions",
       field: "actions",
-      flex: 1,
-      sortable: false,
-      cellRenderer: (params: { data: Server }) => (
-        <Group gap="xs" justify="flex-end" pr="md">
-          <Tooltip label="Edit Server">
-            <ActionIcon
-              variant="light"
-              color="blue"
-              size="lg"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedServer(params.data);
-                setEditModalOpen(true);
-              }}
-            >
-              <IconEdit style={{ width: "70%", height: "70%" }} stroke={1.5} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Delete Server">
-            <ActionIcon
-              variant="light"
-              color="red"
-              size="lg"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteServer(params.data.id);
-              }}
-            >
-              <IconTrash style={{ width: "70%", height: "70%" }} stroke={1.5} />
-            </ActionIcon>
-          </Tooltip>
+      width: 200,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cellRenderer: (params: any) => (
+        <Group gap="xs">
+          <ActionIcon
+            variant="subtle"
+            color="blue"
+            onClick={() => onCheckHealth(params.data.id)}
+          >
+            <IconRefresh size={18} />
+          </ActionIcon>
+          <ActionIcon
+            variant="subtle"
+            color="blue"
+            onClick={() => {
+              setSelectedServer(params.data);
+              setEditModalOpen(true);
+            }}
+          >
+            <IconEdit size={18} />
+          </ActionIcon>
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            onClick={() => onDeleteServer(params.data.id)}
+          >
+            <IconTrash size={18} />
+          </ActionIcon>
         </Group>
       ),
     },

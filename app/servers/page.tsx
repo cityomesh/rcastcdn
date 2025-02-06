@@ -54,6 +54,21 @@ export default function ServersPage() {
     }
   };
 
+  const handleCheckHealth = async (id: string) => {
+    try {
+      const response = await fetch(`/api/servers/health?id=${id}`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to check server health");
+      }
+
+      await refreshData();
+    } catch (error) {
+      console.error("Error checking server health:", error);
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -73,6 +88,7 @@ export default function ServersPage() {
           onCreateServer={handleCreateServer}
           onUpdateServer={handleUpdateServer}
           onDeleteServer={handleDeleteServer}
+          onCheckHealth={handleCheckHealth}
         />
       </Stack>
     </Paper>

@@ -16,17 +16,21 @@ const SSH_CONFIG = {
 
 export async function GET() {
   return new Promise((resolve) => {
+    console.log("Connecting to SSH server...");
     const conn = new Client();
 
     conn.on("ready", () => {
+      console.log("SSH connection established");
       conn.exec("cat /etc/nimble/rules.conf", (err, stream) => {
         if (err) {
+          console.error("SSH exec error:", err);
           conn.end();
           return resolve(
             NextResponse.json(
               {
                 success: false,
                 error: "Failed to read configuration file",
+                details: err.message,
               },
               { status: 500 }
             )
@@ -41,8 +45,11 @@ export async function GET() {
 
         stream.on("end", () => {
           try {
+            console.log("Raw data received:", data);
+            // Remove the first line if it's a comment and parse the rest
             const jsonString = data.split("\n").slice(1).join("\n");
             const rulesData = JSON.parse(jsonString);
+            console.log("Parsed rules data:", rulesData);
             conn.end();
             resolve(
               NextResponse.json({
@@ -51,7 +58,7 @@ export async function GET() {
               })
             );
           } catch (error: unknown) {
-            console.error(error);
+            console.error("Error parsing rules data:", error);
             conn.end();
             resolve(
               NextResponse.json(
@@ -65,20 +72,23 @@ export async function GET() {
             );
           }
         });
+
+        stream.stderr.on("data", (data: Buffer) => {
+          console.error("SSH stderr:", data.toString());
+        });
       });
     });
 
     conn.on("error", (err) => {
-      console.error("SSH connection error details:", {
+      console.error("SSH connection error:", {
         message: err.message,
-
         level: err.level,
       });
       resolve(
         NextResponse.json(
           {
             success: false,
-            error: `Connection failed: ${err.message}`,
+            error: `SSH connection failed: ${err.message}`,
           },
           { status: 500 }
         )
