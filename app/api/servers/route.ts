@@ -11,6 +11,8 @@ interface Server {
   port: number;
   originIpWithPort: string;
   createdAt: string;
+  serverType: "origin" | "edge";
+  parentServerId?: string;
 }
 
 const DATA_FILE = path.join(process.cwd(), "data", "servers.json");
@@ -56,6 +58,7 @@ export async function POST(request: Request) {
       "sshPassword",
       "port",
       "originIpWithPort",
+      "serverType",
     ];
     for (const field of requiredFields) {
       if (!data[field]) {
@@ -63,6 +66,53 @@ export async function POST(request: Request) {
           { error: `Missing required field: ${field}` },
           { status: 400 }
         );
+      }
+    }
+
+    // Validate server type
+    if (!["origin", "edge"].includes(data.serverType)) {
+      return NextResponse.json(
+        { error: "Server type must be either 'origin' or 'edge'" },
+        { status: 400 }
+      );
+    }
+
+    // If it's an edge server, verify parent server exists
+    if (data.serverType === "edge" && data.parentServerId) {
+      const existingServers = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+      const parentServer = existingServers.find(
+        (server: Server) => server.id === data.parentServerId
+      );
+
+      if (!parentServer) {
+        return NextResponse.json(
+          { error: "Parent server not found" },
+          { status: 400 }
+        );
+      }
+
+      // Prevent circular references
+      let currentParentId = data.parentServerId;
+      let depth = 0;
+      const maxDepth = 10; // Safeguard against very deep hierarchies
+
+      while (currentParentId && depth < maxDepth) {
+        const parent = existingServers.find(
+          (server: Server) => server.id === currentParentId
+        );
+
+        if (!parent) break;
+
+        if (parent.id === data.id) {
+          // Circular reference
+          return NextResponse.json(
+            { error: "Circular server reference detected" },
+            { status: 400 }
+          );
+        }
+
+        currentParentId = parent.parentServerId;
+        depth++;
       }
     }
 

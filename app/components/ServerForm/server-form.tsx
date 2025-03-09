@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
 import {
   TextInput,
@@ -13,6 +13,7 @@ import {
   Paper,
   SimpleGrid,
   Alert,
+  Select,
 } from "@mantine/core";
 import {
   IconServer,
@@ -22,6 +23,7 @@ import {
   IconNumbers,
   IconAlertCircle,
 } from "@tabler/icons-react";
+import { Server } from "@/app/types/server";
 
 interface ServerFormData {
   displayName: string;
@@ -30,6 +32,8 @@ interface ServerFormData {
   sshPassword: string;
   port: number;
   originIpWithPort: string;
+  serverType: "origin" | "edge";
+  parentServerId?: string;
 }
 
 interface ServerFormProps {
@@ -47,6 +51,9 @@ export function ServerForm({
   onSubmit,
   title,
 }: ServerFormProps) {
+  const [availableServers, setAvailableServers] = useState<Server[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<ServerFormData>({
     initialValues: initialValues || {
       displayName: "",
@@ -55,6 +62,8 @@ export function ServerForm({
       sshPassword: "",
       port: 22,
       originIpWithPort: "",
+      serverType: "origin",
+      parentServerId: undefined,
     },
     validate: {
       displayName: (value: string) => {
@@ -125,14 +134,41 @@ export function ServerForm({
         }
         return null;
       },
+      parentServerId: (value, values) => {
+        if (values.serverType === "edge" && !value) {
+          return "Parent server is required for edge servers";
+        }
+        return null;
+      },
     },
   });
+
+  useEffect(() => {
+    const fetchServers = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/servers");
+        const data = await response.json();
+        setAvailableServers(data);
+      } catch (error) {
+        console.error("Error fetching servers:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (opened) {
+      fetchServers();
+    }
+  }, [opened]);
 
   const handleSubmit = form.onSubmit((values: ServerFormData) => {
     onSubmit(values);
     form.reset();
     onClose();
   });
+
+  const showParentSelection = form.values.serverType === "edge";
 
   return (
     <Modal
@@ -195,6 +231,89 @@ export function ServerForm({
                     },
                   }}
                 />
+
+                <Select
+                  required
+                  label={<Text fw={500}>Server Type</Text>}
+                  placeholder="Select server type"
+                  data={[
+                    { value: "origin", label: "Origin Server" },
+                    { value: "edge", label: "Edge Server" },
+                  ]}
+                  {...form.getInputProps("serverType")}
+                  description={
+                    <Text component="span" size="xs" c="dimmed">
+                      Origin servers hold original content, edge servers
+                      distribute content
+                    </Text>
+                  }
+                  styles={{
+                    input: {
+                      "&:focus": {
+                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)",
+                      },
+                      fontSize: "0.95rem",
+                    },
+                    label: {
+                      marginBottom: 4,
+                    },
+                  }}
+                  onChange={(value) => {
+                    form.setFieldValue(
+                      "serverType",
+                      value as "origin" | "edge"
+                    );
+                    // Clear parent server if type is origin
+                    if (value === "origin") {
+                      form.setFieldValue("parentServerId", undefined);
+                    }
+                  }}
+                />
+
+                {showParentSelection && (
+                  <Select
+                    label={<Text fw={500}>Parent Server</Text>}
+                    placeholder="Select parent server"
+                    data={availableServers.map((server) => ({
+                      value: server.id,
+                      label: `${server.displayName} (${server.ipAddress})`,
+                    }))}
+                    {...form.getInputProps("parentServerId")}
+                    description={
+                      <Text component="span" size="xs" c="dimmed">
+                        The server that will act as an origin for this edge
+                        server
+                      </Text>
+                    }
+                    styles={{
+                      input: {
+                        "&:focus": {
+                          boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)",
+                        },
+                        fontSize: "0.95rem",
+                      },
+                      label: {
+                        marginBottom: 4,
+                      },
+                    }}
+                    disabled={isLoading || availableServers.length === 0}
+                    onChange={(value) => {
+                      form.setFieldValue("parentServerId", value || undefined);
+
+                      if (value) {
+                        const parent = availableServers.find(
+                          (server) => server.id === value
+                        );
+                        if (parent) {
+                          form.setFieldValue(
+                            "originIpWithPort",
+                            `${parent.ipAddress}:${parent.port}`
+                          );
+                        }
+                      }
+                    }}
+                  />
+                )}
 
                 <TextInput
                   required

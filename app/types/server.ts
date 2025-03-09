@@ -7,6 +7,8 @@ export interface Server {
   port: number;
   originIpWithPort: string;
   createdAt: string;
+  serverType: "origin" | "edge";
+  parentServerId?: string; // Reference to parent server ID if this is an edge server
   status?: "online" | "offline" | "error";
   lastChecked?: string;
 }

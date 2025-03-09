@@ -8,7 +8,7 @@ export const NimbleServerHeader = () => {
     <Group
       justify="space-between"
       align="center"
-      style={{ backgroundColor: "#3498db", padding: "1rem" }}
+      style={{ backgroundColor: "#8B0000", padding: "1rem" }}
     >
       <Link href="/" style={{ textDecoration: "none" }}>
         <Title order={2} c="white">

@@ -9,7 +9,7 @@ import { IconQuestionMark, IconPencil, IconTrash } from "@tabler/icons-react";
 
 interface Server {
   id: string;
-  display_name: string;
+  displayName: string;
 }
 
 interface RouteServerAssignment {
@@ -58,7 +58,7 @@ export const UlkaTable = ({ data }: UlkaTableProps) => {
       valueFormatter: (params: { value: Server[] | undefined }) => {
         if (!params.value) return "";
         return params.value
-          .map((server: Server) => server.display_name)
+          .map((server: Server) => server.displayName)
           .join(", ");
       },
     },

@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import "./globals.css";
 import {
   ColorSchemeScript,
   MantineProvider,
   mantineHtmlProps,
 } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { NimbleServerHeader } from "./components/NimbleServerHeader/nimble-server-header";
 import { DataProvider } from "./contexts/DataContext";
 
@@ -36,8 +38,28 @@ export default function RootLayout({
           theme={{
             fontFamily: inter.style.fontFamily,
             headings: { fontFamily: inter.style.fontFamily },
+            primaryColor: "red",
+            colors: {
+              red: [
+                "#FFE6E6",
+                "#FFCCCC",
+                "#FF9999",
+                "#FF6666",
+                "#FF3333",
+                "#FF0000",
+                "#CC0000",
+                "#8B0000",
+                "#660000",
+                "#330000",
+              ],
+            },
+            primaryShade: { light: 7, dark: 7 },
+            black: "#000000",
+            white: "#ffffff",
           }}
+          defaultColorScheme="dark"
         >
+          <Notifications position="top-right" zIndex={1000} />
           <DataProvider>
             <NimbleServerHeader />
             {children}

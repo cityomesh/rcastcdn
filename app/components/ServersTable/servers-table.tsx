@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AgGridTable } from "../AgGridTable/ag-grid-table";
 import { ColDef } from "ag-grid-community";
 import { Button, Group, Text, ActionIcon, Badge } from "@mantine/core";
@@ -10,6 +10,8 @@ import {
   IconPlus,
   IconTrash,
   IconRefresh,
+  IconServer,
+  IconServerCog,
 } from "@tabler/icons-react";
 import { Server } from "@/app/contexts/DataContext";
 
@@ -35,6 +37,15 @@ export const ServersTable = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
 
+  const getParentServerName = useCallback(
+    (parentId: string | undefined) => {
+      if (!parentId) return "None";
+      const parent = data.find((server) => server.id === parentId);
+      return parent ? parent.displayName : "Unknown";
+    },
+    [data]
+  );
+
   const NoRowsOverlay = () => (
     <Text size="lg" c="dimmed" ta="center" py="xl">
       No servers found. Click the &quot;Add Server&quot; button above to create
@@ -48,6 +59,33 @@ export const ServersTable = ({
       field: "displayName",
       flex: 1,
       sortable: true,
+    },
+    {
+      headerName: "Server Type",
+      field: "serverType",
+      width: 130,
+      sortable: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cellRenderer: (params: any) => (
+        <Group gap="xs" wrap="nowrap">
+          {params.value === "origin" ? (
+            <IconServer size={16} />
+          ) : (
+            <IconServerCog size={16} />
+          )}
+          <Text size="sm">{params.value === "origin" ? "Origin" : "Edge"}</Text>
+        </Group>
+      ),
+    },
+    {
+      headerName: "Parent Server",
+      field: "parentServerId",
+      width: 150,
+      sortable: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      valueGetter: (params: any) =>
+        getParentServerName(params.data.parentServerId),
+      hide: false,
     },
     {
       headerName: "IP Address",
