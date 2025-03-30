@@ -1,5 +1,5 @@
 import { Button, Text, Anchor, Stack, Group, Loader } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { UlkaTable } from "../UlkaTable/ulka-table";
 import { RouteServerAssignment } from "./nimble-home-content.types";
 
@@ -7,23 +7,24 @@ export const NimbleHomeContent = () => {
   const [routeServers, setRouteServers] = useState<RouteServerAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchRouteServers = async () => {
-      try {
-        const response = await fetch("/api/route-servers");
-        const result = await response.json();
-        if (result.success) {
-          setRouteServers(result.data);
-        }
-      } catch (error) {
-        console.error("Error fetching route servers:", error);
-      } finally {
-        setLoading(false);
+  const fetchRouteServers = useCallback(async () => {
+    if (!loading) setLoading(true);
+    try {
+      const response = await fetch("/api/route-servers");
+      const result = await response.json();
+      if (result.success) {
+        setRouteServers(result.data);
       }
-    };
-
-    fetchRouteServers();
+    } catch (error) {
+      console.error("Error fetching route servers:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchRouteServers();
+  }, [fetchRouteServers]);
 
   return (
     <Stack gap="md">
@@ -88,7 +89,11 @@ export const NimbleHomeContent = () => {
         the routes below to apply.
       </Text>
 
-      {loading ? <Loader /> : <UlkaTable data={routeServers} />}
+      {loading ? (
+        <Loader />
+      ) : (
+        <UlkaTable data={routeServers} onDataChange={fetchRouteServers} />
+      )}
     </Stack>
   );
 };

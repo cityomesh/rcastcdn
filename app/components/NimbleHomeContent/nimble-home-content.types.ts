@@ -1,6 +1,6 @@
 export interface Server {
   id: string;
-  display_name: string;
+  displayName: string;
 }
 
 export interface RouteServerAssignment {

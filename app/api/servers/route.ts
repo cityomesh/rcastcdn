@@ -34,11 +34,17 @@ export async function GET() {
     ensureDataDir();
     const data = fs.readFileSync(DATA_FILE, "utf-8");
     const servers = JSON.parse(data);
-    return NextResponse.json(servers);
+    return NextResponse.json({
+      success: true,
+      data: servers,
+    });
   } catch (error: unknown) {
     console.error("Error fetching servers:", error);
     return NextResponse.json(
-      { error: "Failed to fetch servers" },
+      {
+        success: false,
+        error: "Failed to fetch servers",
+      },
       { status: 500 }
     );
   }
