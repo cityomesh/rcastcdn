@@ -1,7 +1,7 @@
 "use client";
 
 import { AgGridTable } from "../AgGridTable/ag-grid-table";
-import { ColDef, SelectionChangedEvent } from "ag-grid-community";
+import { ColDef } from "ag-grid-community";
 import { useState } from "react";
 import "./ulka-table.css";
 import {
@@ -45,7 +45,6 @@ interface UlkaTableProps {
 
 export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
   const router = useRouter();
-  const [selectedRows, setSelectedRows] = useState<RouteServerAssignment[]>([]);
   const [
     deleteModalOpened,
     { open: openDeleteModal, close: closeDeleteModal },
@@ -53,39 +52,21 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [itemToDelete, setItemToDelete] =
     useState<RouteServerAssignment | null>(null);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  const handleDelete = async (item?: RouteServerAssignment) => {
-    const assignments = item ? [item] : selectedRows;
-    if (assignments.length === 0) return;
+  const handleDelete = async (item: RouteServerAssignment) => {
+    if (!item || !item.id) return;
 
     try {
       setIsDeleting(true);
-      item ? setIsBulkDeleting(false) : setIsBulkDeleting(true);
 
-      const results = await Promise.all(
-        assignments.map(async (assignment) => {
-          if (!assignment.id) return false;
+      const response = await fetch(`/api/route-servers?id=${item.id}`, {
+        method: "DELETE",
+      });
 
-          const response = await fetch(
-            `/api/route-servers?id=${assignment.id}`,
-            {
-              method: "DELETE",
-            }
-          );
-
-          return response.ok;
-        })
-      );
-
-      const allSuccessful = results.every((result) => result);
-
-      if (allSuccessful) {
+      if (response.ok) {
         notifications.show({
           title: "Success",
-          message: `${
-            assignments.length > 1 ? "Assignments" : "Assignment"
-          } deleted successfully`,
+          message: "Assignment deleted successfully",
           color: "green",
           icon: <IconCheck size={18} />,
         });
@@ -96,12 +77,12 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       } else {
         notifications.show({
           title: "Error",
-          message: "Failed to delete one or more assignments",
+          message: "Failed to delete assignment",
           color: "red",
         });
       }
     } catch (error) {
-      console.error("Error deleting assignment(s):", error);
+      console.error("Error deleting assignment:", error);
       notifications.show({
         title: "Error",
         message: "An error occurred while deleting",
@@ -113,12 +94,8 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
     }
   };
 
-  const confirmDelete = (item?: RouteServerAssignment) => {
-    if (item) {
-      setItemToDelete(item);
-    } else {
-      setItemToDelete(null);
-    }
+  const confirmDelete = (item: RouteServerAssignment) => {
+    setItemToDelete(item);
     openDeleteModal();
   };
 
@@ -147,14 +124,6 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
   };
 
   const columnDefs: ColDef[] = [
-    {
-      headerName: "",
-      field: "selection",
-      width: 50,
-      headerCheckboxSelection: true,
-      checkboxSelection: true,
-      showDisabledCheckboxes: false,
-    },
     {
       headerName: "Request comes to ...",
       field: "from",
@@ -225,14 +194,6 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
     },
   ];
 
-  const onSelectionChanged = (event: SelectionChangedEvent) => {
-    const selectedNodes = event.api.getSelectedNodes();
-    const selectedData = selectedNodes.map(
-      (node) => node.data as RouteServerAssignment
-    );
-    setSelectedRows(selectedData);
-  };
-
   return (
     <>
       <Paper
@@ -243,43 +204,21 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
             "0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0px 0 1px rgba(10, 10, 10, 0.02)",
         }}
       >
-        <Stack gap="lg">
-          <Group justify="space-between" align="center">
-            {selectedRows.length > 0 && (
-              <ActionIcon
-                variant="filled"
-                color="red"
-                size="lg"
-                onClick={() => confirmDelete()}
-                title={`Delete ${selectedRows.length} selected items`}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <Loader size="xs" color="white" />
-                ) : (
-                  <IconTrash size={18} />
-                )}
-              </ActionIcon>
-            )}
-          </Group>
-          <AgGridTable
-            data={data}
-            columnDefs={columnDefs}
-            height="600px"
-            gridOptions={{
-              rowStyle: { cursor: "pointer" },
-              defaultColDef: {
-                headerClass: "custom-header",
-              },
-              rowSelection: "multiple",
-              onSelectionChanged: onSelectionChanged,
-              onRowClicked: (event) => {
-                showDetails(event.data);
-              },
-            }}
-            theme="alpine"
-          />
-        </Stack>
+        <AgGridTable
+          data={data}
+          columnDefs={columnDefs}
+          height="600px"
+          gridOptions={{
+            rowStyle: { cursor: "pointer" },
+            defaultColDef: {
+              headerClass: "custom-header",
+            },
+            onRowClicked: (event) => {
+              showDetails(event.data);
+            },
+          }}
+          theme="alpine"
+        />
       </Paper>
 
       <Modal
@@ -288,11 +227,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
         title="Confirm Delete"
         centered
       >
-        <Text mb="md">
-          {itemToDelete
-            ? `Are you sure you want to delete this assignment?`
-            : `Are you sure you want to delete ${selectedRows.length} selected assignments?`}
-        </Text>
+        <Text mb="md">Are you sure you want to delete this assignment?</Text>
         <Group justify="flex-end" mt="xl">
           <Button
             variant="outline"
@@ -303,7 +238,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
           </Button>
           <Button
             color="red"
-            onClick={() => handleDelete(itemToDelete || undefined)}
+            onClick={() => itemToDelete && handleDelete(itemToDelete)}
             loading={isDeleting}
           >
             Delete

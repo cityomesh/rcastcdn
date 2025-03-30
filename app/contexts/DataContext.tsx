@@ -48,7 +48,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(rulesData.error || "Failed to fetch routes");
       }
 
-      setServers(serversData);
+      setServers(serversData.data);
 
       // Extract routes from the SSH response
       const routes = rulesData.data?.SyncResponse?.Routes || [];
