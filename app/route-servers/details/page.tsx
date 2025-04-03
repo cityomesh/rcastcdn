@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Container,
@@ -21,7 +21,8 @@ import { notifications } from "@mantine/notifications";
 import { RouteServerAssignment } from "@/app/components/NimbleHomeContent/nimble-home-content.types";
 import { api } from "@/app/utils/api";
 
-export default function RouteServerDetailPage() {
+// Create a component to use search params
+function RouteServerDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -214,5 +215,23 @@ export default function RouteServerDetailPage() {
         </Stack>
       </Paper>
     </Container>
+  );
+}
+
+// Main page component with Suspense
+export default function RouteServerDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <Container size="md" py="xl">
+          <Stack align="center" justify="center" h="60vh">
+            <Loader size="lg" />
+            <Text>Loading...</Text>
+          </Stack>
+        </Container>
+      }
+    >
+      <RouteServerDetail />
+    </Suspense>
   );
 }

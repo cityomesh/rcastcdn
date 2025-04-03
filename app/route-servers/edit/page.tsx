@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Container,
@@ -29,7 +29,8 @@ interface ServerOption {
   label: string;
 }
 
-export default function RouteServerEditPage() {
+// Component that uses useSearchParams
+function RouteServerEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -121,7 +122,7 @@ export default function RouteServerEditPage() {
     };
 
     fetchData();
-  }, [id, router]);
+  }, [id, router, form]);
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
@@ -255,5 +256,23 @@ export default function RouteServerEditPage() {
         </form>
       </Paper>
     </Container>
+  );
+}
+
+// Main page component with Suspense
+export default function RouteServerEditPage() {
+  return (
+    <Suspense
+      fallback={
+        <Container size="md" py="xl">
+          <Stack align="center" justify="center" h="60vh">
+            <Loader size="lg" />
+            <Text>Loading...</Text>
+          </Stack>
+        </Container>
+      }
+    >
+      <RouteServerEdit />
+    </Suspense>
   );
 }
