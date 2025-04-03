@@ -4,16 +4,7 @@ import { AgGridTable } from "../AgGridTable/ag-grid-table";
 import { ColDef } from "ag-grid-community";
 import { useState } from "react";
 import "./ulka-table.css";
-import {
-  ActionIcon,
-  Group,
-  Stack,
-  Paper,
-  Modal,
-  Text,
-  Button,
-  Loader,
-} from "@mantine/core";
+import { ActionIcon, Group, Paper, Modal, Text, Button } from "@mantine/core";
 import {
   IconQuestionMark,
   IconPencil,
@@ -23,6 +14,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
 import { useRouter } from "next/navigation";
+import { api } from "@/app/utils/api";
 
 interface Server {
   id: string;
@@ -59,11 +51,9 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
     try {
       setIsDeleting(true);
 
-      const response = await fetch(`/api/route-servers?id=${item.id}`, {
-        method: "DELETE",
-      });
+      const result = await api.delete(`api/route-servers/${item.id}`);
 
-      if (response.ok) {
+      if (result.success) {
         notifications.show({
           title: "Success",
           message: "Assignment deleted successfully",

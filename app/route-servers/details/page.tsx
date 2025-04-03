@@ -19,6 +19,7 @@ import {
 import { IconArrowLeft, IconPencil, IconTrash } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { RouteServerAssignment } from "@/app/components/NimbleHomeContent/nimble-home-content.types";
+import { api } from "@/app/utils/api";
 
 export default function RouteServerDetailPage() {
   const router = useRouter();
@@ -39,8 +40,7 @@ export default function RouteServerDetailPage() {
       try {
         setLoading(true);
         // Fetch the assignments and find the one with matching ID
-        const response = await fetch("/api/route-servers");
-        const result = await response.json();
+        const result = await api.get("api/route-servers");
 
         if (result.success) {
           const assignment = result.data.find(
@@ -88,11 +88,9 @@ export default function RouteServerDetailPage() {
     if (!id || !assignment) return;
 
     try {
-      const response = await fetch(`/api/route-servers?id=${id}`, {
-        method: "DELETE",
-      });
+      const result = await api.delete(`api/route-servers/${id}`);
 
-      if (response.ok) {
+      if (result.success) {
         notifications.show({
           title: "Success",
           message: "Assignment deleted successfully",

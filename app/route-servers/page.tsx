@@ -18,6 +18,7 @@ import { useDisclosure } from "@mantine/hooks";
 import RouteServerForm from "../components/RouteServerForm/route-server-form";
 import { useData } from "../contexts/DataContext";
 import Link from "next/link";
+import { api } from "@/app/utils/api";
 
 interface Server {
   id: string;
@@ -44,15 +45,7 @@ export default function RouteServersPage() {
   const handleSubmit = async (values: RouteServerAssignment) => {
     try {
       setRefreshing(true);
-      const response = await fetch("/api/route-servers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(values),
-      });
-
-      const data = await response.json();
+      const data = await api.post("api/route-servers", values);
 
       if (data.success) {
         notifications.show({
@@ -104,7 +97,17 @@ export default function RouteServersPage() {
                 leftSection={
                   showForm ? <IconX size={16} /> : <IconPlus size={16} />
                 }
-                color="blue"
+                color="red"
+                variant="filled"
+                styles={{
+                  root: {
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                    fontWeight: 500,
+                    "&:hover": {
+                      boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
+                    },
+                  },
+                }}
               >
                 {showForm ? "Cancel" : "Add New Assignment"}
               </Button>

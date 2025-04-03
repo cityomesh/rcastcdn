@@ -3,6 +3,7 @@
 import { Paper, Stack, Title } from "@mantine/core";
 import { ServersTable } from "../components/ServersTable/servers-table";
 import { useData, Server } from "../contexts/DataContext";
+import { api } from "../utils/api";
 
 export default function ServersPage() {
   const { servers, loading, refreshData } = useData();
@@ -11,19 +12,7 @@ export default function ServersPage() {
     serverData: Omit<Server, "id" | "createdAt">
   ) => {
     try {
-      const response = await fetch("/api/servers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(serverData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create server");
-      }
-
+      await api.post("api/servers", serverData);
       await refreshData();
     } catch (error) {
       console.error("Error creating server:", error);
@@ -39,15 +28,7 @@ export default function ServersPage() {
 
   const handleDeleteServer = async (id: string) => {
     try {
-      const response = await fetch(`/api/servers?id=${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete server");
-      }
-
+      await api.delete(`api/servers?id=${id}`);
       await refreshData();
     } catch (error) {
       console.error("Error deleting server:", error);
@@ -56,13 +37,7 @@ export default function ServersPage() {
 
   const handleCheckHealth = async (id: string) => {
     try {
-      const response = await fetch(`/api/servers/health?id=${id}`);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to check server health");
-      }
-
+      await api.get(`api/servers/health?id=${id}`);
       await refreshData();
     } catch (error) {
       console.error("Error checking server health:", error);

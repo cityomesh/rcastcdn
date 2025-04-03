@@ -1,24 +1,48 @@
-import { Button, Text, Anchor, Stack, Group, Loader } from "@mantine/core";
+import {
+  Text,
+  Stack,
+  Group,
+  Loader,
+  Paper,
+  Title,
+  TextInput,
+  Select,
+  Badge,
+  Flex,
+  Divider,
+  ActionIcon,
+  Tooltip,
+  Box,
+} from "@mantine/core";
 import { useEffect, useState, useCallback } from "react";
 import { UlkaTable } from "../UlkaTable/ulka-table";
 import { RouteServerAssignment } from "./nimble-home-content.types";
+import { api } from "@/app/utils/api";
+import { IconSearch, IconRefresh, IconFilter } from "@tabler/icons-react";
+import { StreamType } from "@/app/types/server";
 
 export const NimbleHomeContent = () => {
   const [routeServers, setRouteServers] = useState<RouteServerAssignment[]>([]);
+  const [filteredData, setFilteredData] = useState<RouteServerAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchRouteServers = useCallback(async () => {
-    if (!loading) setLoading(true);
+    setLoading(true);
+    setIsRefreshing(true);
     try {
-      const response = await fetch("/api/route-servers");
-      const result = await response.json();
+      const result = await api.get("api/route-servers");
       if (result.success) {
         setRouteServers(result.data);
+        setFilteredData(result.data);
       }
     } catch (error) {
       console.error("Error fetching route servers:", error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -26,74 +50,142 @@ export const NimbleHomeContent = () => {
     fetchRouteServers();
   }, [fetchRouteServers]);
 
+  useEffect(() => {
+    // Apply filters when searchTerm or filterType changes
+    let filtered = [...routeServers];
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (item) =>
+          item.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.to.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.servers.some((server) =>
+            server.displayName.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+      );
+    }
+
+    if (filterType) {
+      filtered = filtered.filter((item) => item.route_kind === filterType);
+    }
+
+    setFilteredData(filtered);
+  }, [searchTerm, filterType, routeServers]);
+
+  const handleRefresh = () => {
+    fetchRouteServers();
+  };
+
+  // Get count of each stream type
+  const streamTypeCounts = routeServers.reduce((acc, item) => {
+    acc[item.route_kind] = (acc[item.route_kind] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
-    <Stack gap="md">
-      {/* Action Buttons */}
-      <Group>
-        <Button variant="filled" color="blue">
-          Re-streaming setup wizard
-        </Button>
-        <Button variant="filled" color="blue">
-          VOD streaming setup wizard
-        </Button>
-        <Button variant="filled" color="blue">
-          Multiple edit
-        </Button>
-      </Group>
+    <Stack gap="lg">
+      <Paper p="md" radius="md" withBorder shadow="xs">
+        <Flex justify="space-between" align="center" mb="md">
+          <Title order={3}>Route Server Assignments</Title>
+        </Flex>
 
-      <Text>
-        This is a page for managing Nimble Streamer routes. Here you can control
-        Nimble behaviour for HLS and MPEG-DASH VOD streaming, re-streaming of
-        HLS / Smooth Streaming / HDS / MPEG-DASH and progressive download.
-      </Text>
+        <Divider my="sm" />
 
-      <Text>
-        You can read the following docs to get familiar with the set up:
-      </Text>
-      <Stack gap="xs" ml="md">
-        <Text>
-          • Set up <Anchor href="#">HLS VOD streaming</Anchor> as origin. Also
-          check <Anchor href="#">ABR SMIL files</Anchor> support setup and{" "}
-          <Anchor href="#">
-            real-life example of VOD streaming with Nimble Streamer
-          </Anchor>
-          .
-        </Text>
-        <Text>
-          • Set up <Anchor href="#">MPEG-DASH VOD streaming</Anchor> and{" "}
-          <Anchor href="#">progressive download pseudo-streaming</Anchor>.
-        </Text>
-        <Text>
-          • Set up <Anchor href="#">HLS, HDS and Smooth re-streaming</Anchor>{" "}
-          routes for edge servers.
-        </Text>
-      </Stack>
+        <Group grow mb="md">
+          <TextInput
+            placeholder="Search routes or servers..."
+            leftSection={<IconSearch size={16} />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.currentTarget.value)}
+          />
+          <Group>
+            <Select
+              placeholder="Filter by stream type"
+              leftSection={<IconFilter size={16} />}
+              data={Object.values(StreamType).map((type) => ({
+                value: type,
+                label: type,
+              }))}
+              value={filterType}
+              onChange={setFilterType}
+              clearable
+              style={{ flex: 1 }}
+            />
+            <Tooltip label="Refresh data">
+              <ActionIcon
+                variant="light"
+                color="blue"
+                onClick={handleRefresh}
+                loading={isRefreshing}
+              >
+                <IconRefresh size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        </Group>
 
-      <Text>
-        You may start setting up these scenarios by clicking on &ldquo;Add ...
-        &ldquo; links above.
-      </Text>
-      <Text>
-        For <strong>live streaming definition</strong> go to{" "}
-        <Anchor href="#">Live streams set up</Anchor> page. Nimble may take
-        RTMP, MPEG-TS and Icecast to transmux them to HLS, make RTMP to DASH
-        transmuxing and also perform Icecast re-streaming. If you need to run
-        3rd-party tools, check{" "}
-        <Anchor href="#">Server-side streaming tasks management</Anchor> via
-        WMSPanel.
-      </Text>
-      <Text>
-        To <strong>apply existing routes</strong> to a{" "}
-        <strong>new server</strong>, click on the server name and then on server
-        details page click on &quot;Assign to Routes&quot; to select which of
-        the routes below to apply.
-      </Text>
+        <Group mb="md">
+          {Object.entries(streamTypeCounts).map(([type, count]) => (
+            <Badge
+              key={type}
+              color={
+                type === StreamType.DASH
+                  ? "blue"
+                  : type === StreamType.HLS
+                  ? "green"
+                  : "violet"
+              }
+              size="lg"
+              variant={filterType === type ? "filled" : "light"}
+              style={{ cursor: "pointer" }}
+              onClick={() => setFilterType(filterType === type ? null : type)}
+            >
+              {type}: {count}
+            </Badge>
+          ))}
+        </Group>
+      </Paper>
 
-      {loading ? (
-        <Loader />
-      ) : (
-        <UlkaTable data={routeServers} onDataChange={fetchRouteServers} />
-      )}
+      <Paper p="md" radius="md" withBorder shadow="xs">
+        {loading ? (
+          <Flex justify="center" align="center" h={300}>
+            <Stack align="center" gap="xs">
+              <Loader size="md" />
+              <Text c="dimmed" size="sm">
+                Loading assignments...
+              </Text>
+            </Stack>
+          </Flex>
+        ) : filteredData.length === 0 ? (
+          <Flex
+            justify="center"
+            align="center"
+            direction="column"
+            h={300}
+            gap="md"
+          >
+            <Text size="lg" fw={500} c="dimmed">
+              No assignments found
+            </Text>
+            {searchTerm || filterType ? (
+              <Text size="sm" c="dimmed">
+                Try adjusting your search or filters
+              </Text>
+            ) : (
+              <Text size="sm" c="dimmed">
+                Routes will appear here once created
+              </Text>
+            )}
+          </Flex>
+        ) : (
+          <Box>
+            <Text size="sm" fw={500} c="dimmed" mb="xs">
+              Showing {filteredData.length} of {routeServers.length} assignments
+            </Text>
+            <UlkaTable data={filteredData} onDataChange={fetchRouteServers} />
+          </Box>
+        )}
+      </Paper>
     </Stack>
   );
 };

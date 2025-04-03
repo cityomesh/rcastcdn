@@ -14,11 +14,9 @@ export interface Server {
 }
 
 export enum StreamType {
-  HLS = "HLS",
   DASH = "DASH",
-  RTMP = "RTMP",
-  WEBRTC = "WEBRTC",
-  RE_STREAMING = "RE_STREAMING",
+  HLS = "HLS",
+  CMAF = "CMAF",
 }
 
 export interface Route {

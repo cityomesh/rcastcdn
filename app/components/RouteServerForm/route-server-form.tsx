@@ -55,7 +55,9 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
   const { routes, servers, loading } = useData();
   const [selectedRoute, setSelectedRoute] = useState("");
   const [selectedServerIds, setSelectedServerIds] = useState<string[]>([]);
-  const [selectedRouteKind, setSelectedRouteKind] = useState<string>("");
+  const [selectedRouteKind, setSelectedRouteKind] = useState<string>(
+    StreamType.DASH
+  );
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
@@ -166,7 +168,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
       // Reset form
       setSelectedRoute("");
       setSelectedServerIds([]);
-      setSelectedRouteKind("");
+      setSelectedRouteKind(StreamType.DASH);
       setValidationErrors({});
     } catch (error) {
       setValidationErrors({

@@ -24,6 +24,7 @@ import {
   IconAlertCircle,
 } from "@tabler/icons-react";
 import { Server } from "@/app/types/server";
+import { api } from "@/app/utils/api";
 
 interface ServerFormData {
   displayName: string;
@@ -147,9 +148,8 @@ export function ServerForm({
     const fetchServers = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/servers");
-        const data = await response.json();
-        setAvailableServers(data);
+        const data = await api.get("api/servers");
+        setAvailableServers(data.data);
       } catch (error) {
         console.error("Error fetching servers:", error);
       } finally {

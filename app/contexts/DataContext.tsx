@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Server, Route } from "../types/server";
+import { api } from "../utils/api";
 
 interface DataContextType {
   servers: Server[];
@@ -27,19 +28,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log("Fetching data...");
 
-      // Fetch servers and routes in parallel
-      const [serversResponse, rulesResponse] = await Promise.all([
-        fetch("/api/servers"),
-        fetch("/api/rules"),
-      ]);
-
-      if (!rulesResponse.ok) {
-        throw new Error("Failed to fetch routes from SSH server");
-      }
-
+      // Fetch servers and rules in parallel using the API utility
       const [serversData, rulesData] = await Promise.all([
-        serversResponse.json(),
-        rulesResponse.json(),
+        api.get("api/servers"),
+        api.get("api/rules"),
       ]);
 
       console.log("Rules data received:", rulesData);
@@ -50,7 +42,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       setServers(serversData.data);
 
-      // Extract routes from the SSH response
+      // Extract routes from the API response
       const routes = rulesData.data?.SyncResponse?.Routes || [];
       console.log("Extracted routes:", routes);
 

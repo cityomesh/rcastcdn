@@ -22,6 +22,7 @@ import { IconArrowLeft, IconDeviceFloppy } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { RouteServerAssignment } from "@/app/components/NimbleHomeContent/nimble-home-content.types";
 import { StreamType } from "@/app/types/server";
+import { api } from "@/app/utils/api";
 
 interface ServerOption {
   value: string;
@@ -40,7 +41,7 @@ export default function RouteServerEditPage() {
     initialValues: {
       id: "",
       priority: 10,
-      route_kind: "HLS",
+      route_kind: StreamType.DASH,
       from: "",
       to: "",
       servers: [] as string[],
@@ -64,8 +65,7 @@ export default function RouteServerEditPage() {
         setLoading(true);
 
         // Fetch servers for the dropdown
-        const serversResponse = await fetch("/api/servers");
-        const serversResult = await serversResponse.json();
+        const serversResult = await api.get("api/servers");
 
         if (serversResult.success) {
           const options = serversResult.data.map(
@@ -79,8 +79,7 @@ export default function RouteServerEditPage() {
 
         // If editing existing assignment, fetch details
         if (id) {
-          const assignmentsResponse = await fetch("/api/route-servers");
-          const assignmentsResult = await assignmentsResponse.json();
+          const assignmentsResult = await api.get("api/route-servers");
 
           if (assignmentsResult.success) {
             const assignment = assignmentsResult.data.find(
@@ -143,15 +142,7 @@ export default function RouteServerEditPage() {
         servers: selectedServers,
       };
 
-      const response = await fetch("/api/route-servers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
+      const result = await api.post("api/route-servers", payload);
 
       if (result.success) {
         notifications.show({
