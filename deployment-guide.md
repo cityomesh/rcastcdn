@@ -17,75 +17,79 @@ This guide outlines the steps to deploy the Ulka CDN Next.js application to a re
    ssh username@103.189.178.94
    ```
 
-2. Install NVM (Node Version Manager):
+2. Update system packages:
+
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install -y build-essential
+   ```
+
+3. Install NVM (Node Version Manager):
 
    ```bash
    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
    source ~/.bashrc  # or source ~/.zshrc if using zsh
    ```
 
-3. Install Node.js using NVM (the project requires Node.js 18.17 or later):
+4. Install Node.js using NVM (the project requires Node.js 18.17 or later):
 
    ```bash
    nvm install --lts
    nvm alias default lts/*
    ```
 
-4. Verify the installation:
+5. Verify the installation:
 
    ```bash
    node -v
    npm -v
    ```
 
-5. Install PM2 globally for process management:
+6. Install PM2 globally for process management:
 
    ```bash
    npm install -g pm2
    ```
 
-6. Create a directory for the application:
+7. Create a directory for the application:
 
    ```bash
-   mkdir -p /var/www/ulka-cdn
-   ```
-
-7. Set temporary permissions
-   ```bash
-   ssh username@103.189.178.94
    sudo mkdir -p /var/www/ulka-cdn
-   sudo chmod 777 /var/www/ulka-cdn  # Temporarily set permissions
-   exit
    ```
 
-### 2. File Transfer
+8. Set proper permissions:
+   ```bash
+   sudo chown -R $USER:$USER /var/www/ulka-cdn
+   ```
+
+### 2. File Transfer (Option 1: SCP)
 
 From your local machine, transfer files to the server:
 
 ```bash
-scp -r /Users/ujjwal.tiwari/Desktop/carZozo/ulka-cdn/* username@103.189.178.94:/var/www/ulka-cdn/
+scp -r /path/to/ulka-cdn/* username@103.189.178.94:/var/www/ulka-cdn/
 ```
 
-after it completes, SSH back in and reset permissions:
+### 2. File Transfer (Option 2: Git Clone)
+
+If your code is in a git repository, you can clone it directly:
 
 ```bash
-ssh username@103.189.178.94
-sudo chmod 755 /var/www/ulka-cdn
+git clone https://github.com/your-org/ulka-cdn.git /var/www/ulka-cdn
 ```
 
 ### 3. Application Setup
 
-1. SSH back into the server and navigate to your project directory:
+1. Navigate to your project directory:
 
    ```bash
-   ssh username@103.189.178.94
    cd /var/www/ulka-cdn
    ```
 
-2. Install dependencies:
+2. Install dependencies (use npm ci for more reliable builds):
 
    ```bash
-   npm install
+   npm ci
    ```
 
 3. Create or update the `.env` file with production values:
@@ -101,13 +105,19 @@ sudo chmod 755 /var/www/ulka-cdn
    SSH_PORT=your_ssh_port
    SSH_USERNAME=your_ssh_username
    SSH_PASSWORD=your_ssh_password
-   NEXT_PUBLIC_API_URL=http://103.189.178.94:3000  # or your domain
+   NEXT_PUBLIC_API_URL=http://103.189.178.94:3001  # Update with your API URL
    ```
+
+   Save and exit nano:
+
+   1. Press `Ctrl + O` to write out (save) the file
+   2. Press `Enter` to confirm the filename
+   3. Press `Ctrl + X` to exit nano
 
 4. Build the application:
 
    ```bash
-   npm run build
+   NODE_ENV=production npm run build
    ```
 
 5. Start the application with PM2:
@@ -117,19 +127,26 @@ sudo chmod 755 /var/www/ulka-cdn
    ```
 
 6. Set up PM2 to start on system boot:
+
    ```bash
    pm2 startup
    # Run the command that PM2 outputs
    pm2 save
    ```
 
-### 4. Setting up Nginx (Recommended)
+7. Verify the application is running:
+   ```bash
+   pm2 status
+   curl http://localhost:3000
+   ```
+
+### 4. Setting up Nginx as a Reverse Proxy
 
 1. Install Nginx:
 
    ```bash
    sudo apt update
-   sudo apt install nginx
+   sudo apt install nginx -y
    ```
 
 2. Create a new Nginx site configuration:
@@ -151,6 +168,9 @@ sudo chmod 755 /var/www/ulka-cdn
            proxy_set_header Upgrade $http_upgrade;
            proxy_set_header Connection 'upgrade';
            proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
            proxy_cache_bypass $http_upgrade;
        }
    }
@@ -160,6 +180,7 @@ sudo chmod 755 /var/www/ulka-cdn
 
    ```bash
    sudo ln -s /etc/nginx/sites-available/ulka-cdn /etc/nginx/sites-enabled/
+   sudo rm -f /etc/nginx/sites-enabled/default  # Remove default site if needed
    sudo nginx -t
    ```
 
@@ -168,14 +189,80 @@ sudo chmod 755 /var/www/ulka-cdn
    sudo systemctl restart nginx
    ```
 
-### 5. SSL with Let's Encrypt (Optional)
+### 5. Configure Firewall
+
+Set up a basic firewall to allow only necessary traffic:
+
+```bash
+sudo ufw allow 22    # SSH
+sudo ufw allow 80    # HTTP
+sudo ufw allow 443   # HTTPS
+sudo ufw enable
+```
+
+### 6. SSL Setup (Two Options)
+
+#### Option 1: Self-signed Certificate (for IP addresses or testing)
+
+```bash
+# Create directory for certificate
+sudo mkdir -p /etc/nginx/ssl
+
+# Generate self-signed certificate
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/ulka-cdn.key -out /etc/nginx/ssl/ulka-cdn.crt
+
+# Edit Nginx config
+sudo nano /etc/nginx/sites-available/ulka-cdn
+```
+
+Update the Nginx configuration:
+
+```nginx
+server {
+    listen 80;
+    server_name 103.189.178.94;  # Replace with your server IP
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name 103.189.178.94;  # Replace with your server IP
+
+    ssl_certificate /etc/nginx/ssl/ulka-cdn.crt;
+    ssl_certificate_key /etc/nginx/ssl/ulka-cdn.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Restart Nginx:
+
+```bash
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+Note: Browsers will show a security warning with self-signed certificates.
+
+#### Option 2: Let's Encrypt (for domain names only)
 
 If you have a domain name pointing to your server:
 
 1. Install Certbot:
 
    ```bash
-   sudo apt install certbot python3-certbot-nginx
+   sudo apt install certbot python3-certbot-nginx -y
    ```
 
 2. Obtain an SSL certificate:
@@ -186,7 +273,7 @@ If you have a domain name pointing to your server:
 
 3. Follow the prompts to complete the installation.
 
-### 6. Monitoring and Maintenance
+### 7. Monitoring and Maintenance
 
 1. Monitor the application logs:
 
@@ -202,14 +289,25 @@ If you have a domain name pointing to your server:
 
 3. Update the application (when you have new changes):
    ```bash
-   cd ~/ulka-cdn  # or /var/www/ulka-cdn
+   cd /var/www/ulka-cdn
    git pull  # if using git
-   npm install  # if dependencies changed
-   npm run build
+   npm ci    # more reliable than npm install
+   NODE_ENV=production npm run build
    pm2 restart ulka-cdn
    ```
 
 ## Troubleshooting
+
+### Next.js Build Issues
+
+If you encounter build errors, try clearing the cache:
+
+```bash
+rm -rf .next
+rm -rf node_modules/.cache
+npm ci
+NODE_ENV=production npm run build
+```
 
 ### SSH2 Module Issues
 
@@ -230,10 +328,26 @@ If you encounter permission issues:
 sudo chown -R $USER:$USER /path/to/directory
 ```
 
+### Nginx Issues
+
+Check Nginx logs for errors:
+
+```bash
+sudo tail -f /var/log/nginx/error.log
+```
+
+### PM2 Issues
+
+If the process doesn't start after server reboot:
+
+```bash
+pm2 resurrect
+```
+
 ### Node.js Version Issues
 
 If you need to switch Node.js versions:
 
 ```bash
-nvm use <version>  # or your preferred version
+nvm use <VERSION>  # or your preferred version
 ```
