@@ -67,7 +67,7 @@ export const ServersTable = ({
       sortable: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       cellRenderer: (params: any) => (
-        <Group gap="xs" wrap="nowrap">
+        <Group gap="xs" wrap="nowrap" align="center" style={{ height: "100%" }}>
           {params.value === "origin" ? (
             <IconServer size={16} />
           ) : (
@@ -139,18 +139,20 @@ export const ServersTable = ({
       headerName: "Actions",
       field: "actions",
       width: 200,
+      minWidth: 180,
+      pinned: "right",
+      suppressSizeToFit: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       cellRenderer: (params: any) => (
-        <Group gap="xs">
+        <Group gap="xs" align="center" style={{ height: "100%" }}>
           <ActionIcon
-            variant="subtle"
             color="blue"
             onClick={() => onCheckHealth(params.data.id)}
           >
             <IconRefresh size={18} />
           </ActionIcon>
           <ActionIcon
-            variant="subtle"
+            // variant="subtle"
             color="blue"
             onClick={() => {
               setSelectedServer(params.data);
@@ -160,7 +162,7 @@ export const ServersTable = ({
             <IconEdit size={18} />
           </ActionIcon>
           <ActionIcon
-            variant="subtle"
+            // variant="subtle"
             color="red"
             onClick={() => onDeleteServer(params.data.id)}
           >

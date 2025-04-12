@@ -12,7 +12,7 @@ export const NimbleServerHeader = () => {
     >
       <Link href="/" style={{ textDecoration: "none" }}>
         <Title order={2} c="white">
-          Nimble Server Routes
+          CDN Server Routes
         </Title>
       </Link>
       <Group gap="sm">
@@ -22,10 +22,10 @@ export const NimbleServerHeader = () => {
         >
           Servers
         </Link>
-        <Text c="white">•</Text>
+        {/* <Text c="white">•</Text>
         <Link href="/routes" style={{ color: "white", textDecoration: "none" }}>
           Routes
-        </Link>
+        </Link> */}
         <Text c="white">•</Text>
         <Link
           href="/route-servers"

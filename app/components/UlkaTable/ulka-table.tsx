@@ -140,15 +140,17 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       },
     },
     {
-      headerName: "",
+      headerName: "Actions",
       field: "actions",
-      flex: 0.5,
+      width: 200,
+      minWidth: 180,
+      pinned: "right",
+      suppressSizeToFit: true,
       sortable: false,
       cellRenderer: (params: { data: RouteServerAssignment }) => (
-        <Group gap="xs" justify="flex-end">
+        <Group gap="xs" align="center" style={{ height: "100%" }}>
           <ActionIcon
-            variant="subtle"
-            color="#097bd3"
+            color="blue"
             onClick={(e) => {
               e.stopPropagation();
               showDetails(params.data);
@@ -158,8 +160,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
             <IconQuestionMark size={18} />
           </ActionIcon>
           <ActionIcon
-            variant="subtle"
-            color="#097bd3"
+            color="blue"
             onClick={(e) => {
               e.stopPropagation();
               handleEdit(params.data);
@@ -169,8 +170,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
             <IconPencil size={18} />
           </ActionIcon>
           <ActionIcon
-            variant="subtle"
-            color="#097bd3"
+            color="red"
             onClick={(e) => {
               e.stopPropagation();
               confirmDelete(params.data);

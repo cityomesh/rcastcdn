@@ -14,8 +14,8 @@ import {
   TextInput,
   NumberInput,
   MultiSelect,
-  Select,
   Divider,
+  Box,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconArrowLeft, IconDeviceFloppy } from "@tabler/icons-react";
@@ -27,6 +27,7 @@ import { api } from "@/app/utils/api";
 interface ServerOption {
   value: string;
   label: string;
+  description?: string;
 }
 
 // Component that uses useSearchParams
@@ -37,23 +38,44 @@ function RouteServerEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [serverOptions, setServerOptions] = useState<ServerOption[]>([]);
+  const [edgeStreamExample, setEdgeStreamExample] = useState<string>("");
 
   const form = useForm({
     initialValues: {
       id: "",
       priority: 10,
-      route_kind: StreamType.DASH,
-      from: "",
-      to: "",
+      originUrl: "",
       servers: [] as string[],
     },
     validate: {
-      from: (value) => (value ? null : "Request path is required"),
-      to: (value) => (value ? null : "Redirect path is required"),
+      originUrl: (value) => {
+        if (!value) return "Origin stream URL is required";
+        try {
+          new URL(value);
+          return null;
+        } catch {
+          return "Please enter a valid URL (including http:// or https://)";
+        }
+      },
       servers: (value) =>
         value.length > 0 ? null : "At least one server must be selected",
     },
   });
+
+  // Update edge stream example whenever origin URL changes
+  useEffect(() => {
+    try {
+      const url = new URL(form.values.originUrl);
+      const path = url.pathname;
+      if (path) {
+        setEdgeStreamExample(`http://edge-server.com${path}`);
+      } else {
+        setEdgeStreamExample("");
+      }
+    } catch {
+      setEdgeStreamExample("");
+    }
+  }, [form.values.originUrl]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,12 +91,23 @@ function RouteServerEdit() {
         const serversResult = await api.get("api/servers");
 
         if (serversResult.success) {
-          const options = serversResult.data.map(
-            (server: { id: string; displayName: string }) => ({
-              value: server.id,
-              label: server.displayName,
-            })
-          );
+          // Filter for only edge servers
+          const options = serversResult.data
+            .filter(
+              (server: { serverType: string }) => server.serverType === "edge"
+            )
+            .map(
+              (server: {
+                id: string;
+                displayName: string;
+                ipAddress: string;
+                port: number;
+              }) => ({
+                value: server.id,
+                label: server.displayName,
+                description: `${server.ipAddress}:${server.port}`,
+              })
+            );
           setServerOptions(options);
         }
 
@@ -92,9 +125,7 @@ function RouteServerEdit() {
               form.setValues({
                 id: assignment.id || "",
                 priority: assignment.priority,
-                route_kind: assignment.route_kind,
-                from: assignment.from,
-                to: assignment.to,
+                originUrl: assignment.to, // Using 'to' as the full origin URL
                 servers: assignment.servers.map(
                   (server: { id: string; displayName: string }) => server.id
                 ),
@@ -102,7 +133,7 @@ function RouteServerEdit() {
             } else {
               notifications.show({
                 title: "Error",
-                message: "Assignment not found",
+                message: "Re-streaming route not found",
                 color: "red",
               });
               router.push("/");
@@ -122,11 +153,25 @@ function RouteServerEdit() {
     };
 
     fetchData();
-  }, [id, router, form]);
+  }, [id, router]);
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
       setSaving(true);
+
+      // Extract path from the origin URL
+      let fromPath = "";
+      try {
+        const url = new URL(values.originUrl);
+        fromPath = url.pathname;
+      } catch {
+        notifications.show({
+          title: "Error",
+          message: "Invalid URL format",
+          color: "red",
+        });
+        return;
+      }
 
       const selectedServers = values.servers.map((serverId: string) => {
         const server = serverOptions.find(
@@ -135,11 +180,18 @@ function RouteServerEdit() {
         return {
           id: serverId,
           displayName: server?.label || "Unknown",
+          ipAddress: server?.description?.split(":")[0] || "",
+          port: parseInt(server?.description?.split(":")[1] || "0", 10),
+          originIpWithPort: "", // This field is required by the API but not used in our new flow
         };
       });
 
       const payload = {
-        ...values,
+        id: values.id,
+        priority: values.priority,
+        route_kind: StreamType.HLS, // Default to HLS as in the creation flow
+        from: fromPath, // Path component of the URL
+        to: values.originUrl, // Full origin URL
         servers: selectedServers,
       };
 
@@ -148,19 +200,19 @@ function RouteServerEdit() {
       if (result.success) {
         notifications.show({
           title: "Success",
-          message: "Assignment saved successfully",
+          message: "Re-streaming route saved successfully",
           color: "green",
         });
         router.push("/");
       } else {
         notifications.show({
           title: "Error",
-          message: result.error || "Failed to save assignment",
+          message: result.error || "Failed to save re-streaming route",
           color: "red",
         });
       }
     } catch (error) {
-      console.error("Error saving assignment:", error);
+      console.error("Error saving route:", error);
       notifications.show({
         title: "Error",
         message: "An error occurred while saving",
@@ -186,7 +238,7 @@ function RouteServerEdit() {
     <Container size="md" py="xl">
       <Paper p="xl" shadow="sm" radius="md" withBorder>
         <Group justify="space-between" mb="lg">
-          <Title order={3}>{id ? "Edit" : "Add"} Route Server Assignment</Title>
+          <Title order={3}>{id ? "Edit" : "Add"} Re-streaming Route</Title>
           <Button
             leftSection={<IconArrowLeft size={14} />}
             variant="outline"
@@ -199,48 +251,55 @@ function RouteServerEdit() {
         <Divider mb="xl" />
 
         <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack gap="md">
+          <Stack gap="lg">
+            <Text>
+              Edit the re-streaming setup for edge servers. Enter the origin
+              stream URL and select which edge servers should re-stream this
+              content.
+            </Text>
+
+            <Box>
+              <Title order={5}>1. Origin stream URL:</Title>
+              <TextInput
+                placeholder="e.g. http://origin.server:8080/application/mystream/playlist.m3u8"
+                {...form.getInputProps("originUrl")}
+                required
+                mt="xs"
+              />
+            </Box>
+
+            <Box>
+              <Title order={5}>2. Select edge servers:</Title>
+              <MultiSelect
+                placeholder="Choose servers"
+                data={serverOptions}
+                {...form.getInputProps("servers")}
+                required
+                searchable
+                clearable
+                mt="xs"
+              />
+            </Box>
+
+            <Box>
+              <Title order={5}>3. Edge stream URL example:</Title>
+              {edgeStreamExample ? (
+                <Text mt="xs">{edgeStreamExample}</Text>
+              ) : (
+                <Text mt="xs" c="dimmed">
+                  Please enter a valid origin stream URL to see example of edge
+                  stream URL.
+                </Text>
+              )}
+            </Box>
+
             <NumberInput
-              label="Priority"
+              label="Priority (Optional)"
+              description="Lower number means higher priority"
               placeholder="10"
-              min={1}
+              min={0}
               max={100}
               {...form.getInputProps("priority")}
-            />
-
-            <Select
-              label="Route Kind"
-              placeholder="Select route kind"
-              data={Object.values(StreamType).map((type) => ({
-                value: type,
-                label: type,
-              }))}
-              {...form.getInputProps("route_kind")}
-              required
-            />
-
-            <TextInput
-              label="Request Path"
-              placeholder="/path/to/content"
-              {...form.getInputProps("from")}
-              required
-            />
-
-            <TextInput
-              label="Redirect To"
-              placeholder="http://origin-server/path"
-              {...form.getInputProps("to")}
-              required
-            />
-
-            <MultiSelect
-              label="Assigned Servers"
-              placeholder="Select servers"
-              data={serverOptions}
-              {...form.getInputProps("servers")}
-              required
-              searchable
-              clearable
             />
 
             <Group justify="flex-end" mt="xl">
@@ -249,7 +308,7 @@ function RouteServerEdit() {
                 leftSection={<IconDeviceFloppy size={14} />}
                 loading={saving}
               >
-                Save
+                Save Re-streaming Route
               </Button>
             </Group>
           </Stack>

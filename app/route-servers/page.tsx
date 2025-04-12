@@ -9,11 +9,14 @@ import {
   Paper,
   Text,
   Loader,
-  Transition,
   Flex,
 } from "@mantine/core";
 import { Notifications, notifications } from "@mantine/notifications";
-import { IconPlus, IconX, IconArrowLeft } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconArrowLeft,
+  IconDeviceDesktopStar,
+} from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import RouteServerForm from "../components/RouteServerForm/route-server-form";
 import { useData } from "../contexts/DataContext";
@@ -40,7 +43,7 @@ interface RouteServerAssignment {
 export default function RouteServersPage() {
   const { refreshData } = useData();
   const [refreshing, setRefreshing] = useState(false);
-  const [showForm, { toggle: toggleForm }] = useDisclosure(false);
+  const [showForm, { toggle: toggleForm }] = useDisclosure(true); // Default to showing the form
 
   const handleSubmit = async (values: RouteServerAssignment) => {
     try {
@@ -50,21 +53,21 @@ export default function RouteServersPage() {
       if (data.success) {
         notifications.show({
           title: "Success",
-          message: "Route-server assignment saved successfully",
+          message: "Re-streaming route created successfully",
           color: "green",
-          icon: <IconPlus size={16} />,
+          icon: <IconDeviceDesktopStar size={16} />,
         });
         await refreshData();
         toggleForm();
       } else {
-        throw new Error(data.error || "Failed to save assignment");
+        throw new Error(data.error || "Failed to create route");
       }
     } catch (error) {
-      console.error("Error saving assignment:", error);
+      console.error("Error creating route:", error);
       notifications.show({
         title: "Error",
         message:
-          error instanceof Error ? error.message : "Failed to save assignment",
+          error instanceof Error ? error.message : "Failed to create route",
         color: "red",
       });
     } finally {
@@ -77,7 +80,7 @@ export default function RouteServersPage() {
       <Notifications />
       <Container size="xl" py="xl">
         <Flex direction="column" gap="lg">
-          <Group justify="space-between" align="center">
+          <Group justify="space-between" align="center" mb="md">
             <Group gap="md">
               <Link href="/" style={{ textDecoration: "none" }}>
                 <Button
@@ -88,61 +91,44 @@ export default function RouteServersPage() {
                   Back to Overview
                 </Button>
               </Link>
-              <Title order={2}>Manage Route-Server Assignments</Title>
+              <Title order={2}>Create Re-streaming Route</Title>
             </Group>
-            <Group>
-              {refreshing && <Loader size="sm" />}
-              <Button
-                onClick={toggleForm}
-                leftSection={
-                  showForm ? <IconX size={16} /> : <IconPlus size={16} />
-                }
-                color="red"
-                variant="filled"
-                styles={{
-                  root: {
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                    fontWeight: 500,
-                    "&:hover": {
-                      boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
-                    },
-                  },
-                }}
-              >
-                {showForm ? "Cancel" : "Add New Assignment"}
-              </Button>
-            </Group>
+            {refreshing && <Loader size="sm" />}
           </Group>
 
-          <Transition mounted={showForm} transition="slide-down" duration={200}>
-            {(styles) => (
-              <Paper p="xl" withBorder style={styles}>
-                <Title order={3} mb="lg">
-                  New Route-Server Assignment
-                </Title>
-                <RouteServerForm onSubmit={handleSubmit} />
-              </Paper>
+          <Paper p="xl" withBorder>
+            {showForm ? (
+              <RouteServerForm onSubmit={handleSubmit} />
+            ) : (
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                mih={300}
+                gap="md"
+              >
+                <Text size="xl" fw={500}>
+                  Route created successfully!
+                </Text>
+                <Text c="dimmed" ta="center" maw={600} mb="lg">
+                  Your re-streaming route has been created. You can view it on
+                  the home page.
+                </Text>
+                <Group>
+                  <Link href="/" style={{ textDecoration: "none" }}>
+                    <Button color="blue">Go to Overview</Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    onClick={toggleForm}
+                    leftSection={<IconPlus size={16} />}
+                  >
+                    Create Another Route
+                  </Button>
+                </Group>
+              </Flex>
             )}
-          </Transition>
-
-          {!showForm && (
-            <Paper
-              p="xl"
-              withBorder
-              style={{
-                height: "400px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text size="lg" c="dimmed" ta="center" maw={600}>
-                Click &quot;Add New Assignment&quot; above to create a new
-                route-server assignment. You can view and manage all assignments
-                on the home page.
-              </Text>
-            </Paper>
-          )}
+          </Paper>
         </Flex>
       </Container>
     </>
