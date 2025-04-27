@@ -28,7 +28,7 @@ export default function ServersPage() {
 
   const handleDeleteServer = async (id: string) => {
     try {
-      await api.delete(`api/servers?id=${id}`);
+      await api.delete(`api/servers/${id}`);
       await refreshData();
     } catch (error) {
       console.error("Error deleting server:", error);
