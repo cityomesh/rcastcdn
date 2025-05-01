@@ -40,7 +40,7 @@ interface ServerFormData {
 interface ServerFormProps {
   opened: boolean;
   onClose: () => void;
-  initialValues?: ServerFormData;
+  initialValues?: Server | ServerFormData;
   onSubmit: (values: ServerFormData) => void;
   title: string;
 }
@@ -56,7 +56,7 @@ export function ServerForm({
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ServerFormData>({
-    initialValues: initialValues || {
+    initialValues: {
       displayName: "",
       ipAddress: "",
       sshUsername: "",
@@ -143,6 +143,31 @@ export function ServerForm({
       },
     },
   });
+
+  useEffect(() => {
+    // Reset the form when modal is closed
+    if (!opened) {
+      form.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened]);
+
+  useEffect(() => {
+    // Update form values when initialValues change and modal is open
+    if (initialValues && opened) {
+      form.setValues({
+        displayName: initialValues.displayName || "",
+        ipAddress: initialValues.ipAddress || "",
+        sshUsername: initialValues.sshUsername || "",
+        sshPassword: initialValues.sshPassword || "",
+        port: initialValues.port || 22,
+        originIpWithPort: initialValues.originIpWithPort || "",
+        serverType: initialValues.serverType || "origin",
+        parentServerId: initialValues.parentServerId,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValues, opened]);
 
   useEffect(() => {
     const fetchServers = async () => {

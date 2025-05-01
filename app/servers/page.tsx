@@ -23,7 +23,12 @@ export default function ServersPage() {
     id: string,
     serverData: Omit<Server, "id" | "createdAt">
   ) => {
-    console.log("Update not implemented yet", { id, serverData });
+    try {
+      await api.put(`api/servers/${id}`, serverData);
+      await refreshData();
+    } catch (error) {
+      console.error("Error updating server:", error);
+    }
   };
 
   const handleDeleteServer = async (id: string) => {
