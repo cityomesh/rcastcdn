@@ -92,12 +92,25 @@ function RouteServerDetail() {
 
     try {
       setDeleting(true);
-      const result = await api.delete(`api/route-servers/${id}`);
+
+      let result;
+      if (assignment.source === "rules_conf") {
+        // For rules.conf entries, pass the path as a query parameter
+        result = await api.delete(
+          `api/route-servers/${id}?path=${encodeURIComponent(assignment.from)}`
+        );
+      } else {
+        // For local assignments
+        result = await api.delete(`api/route-servers/${id}`);
+      }
 
       if (result.success) {
         notifications.show({
           title: "Success",
-          message: "Assignment deleted successfully",
+          message:
+            assignment.source === "rules_conf"
+              ? "Configuration rule deleted successfully"
+              : "Assignment deleted successfully",
           color: "green",
         });
         router.push("/");
@@ -184,6 +197,19 @@ function RouteServerDetail() {
         <Divider mb="md" />
 
         <Stack gap="md">
+          <Group>
+            <Text fw={700} w={150}>
+              Source:
+            </Text>
+            <Badge
+              color={assignment.source === "rules_conf" ? "orange" : "blue"}
+            >
+              {assignment.source === "rules_conf"
+                ? "Config File"
+                : "UI Created"}
+            </Badge>
+          </Group>
+
           <Group>
             <Text fw={700} w={150}>
               Route Kind:

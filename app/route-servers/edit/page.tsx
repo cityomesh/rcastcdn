@@ -16,6 +16,7 @@ import {
   MultiSelect,
   Divider,
   Box,
+  Alert,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconArrowLeft, IconDeviceFloppy } from "@tabler/icons-react";
@@ -38,6 +39,8 @@ function RouteServerEdit() {
   const [saving, setSaving] = useState(false);
   const [serverOptions, setServerOptions] = useState<ServerOption[]>([]);
   const [streamExample, setStreamExample] = useState<string>("");
+  const [isRulesConfEntry, setIsRulesConfEntry] = useState(false);
+  const [originalPath, setOriginalPath] = useState<string>("");
 
   const form = useForm({
     initialValues: {
@@ -61,20 +64,32 @@ function RouteServerEdit() {
     },
   });
 
-  // Update stream example whenever origin URL changes
+  // Update stream example whenever origin URL or selected servers change
   useEffect(() => {
     try {
       const url = new URL(form.values.originUrl);
       const path = url.pathname;
-      if (path) {
-        setStreamExample(`http://server.com${path}`);
+
+      if (path && form.values.servers.length > 0) {
+        // Get the first selected server for the example
+        const firstServerId = form.values.servers[0];
+        const firstServerOption = serverOptions.find(
+          (opt) => opt.value === firstServerId
+        );
+
+        if (firstServerOption && firstServerOption.description) {
+          const serverAddress = firstServerOption.description; // This is "ip:port"
+          setStreamExample(`http://${serverAddress}${path}`);
+        } else {
+          setStreamExample("");
+        }
       } else {
         setStreamExample("");
       }
     } catch {
       setStreamExample("");
     }
-  }, [form.values.originUrl]);
+  }, [form.values.originUrl, form.values.servers, serverOptions]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -116,6 +131,14 @@ function RouteServerEdit() {
             );
 
             if (assignment) {
+              // Check if this is a rules.conf entry
+              const isFromConf = assignment.source === "rules_conf";
+              setIsRulesConfEntry(isFromConf);
+
+              if (isFromConf && "originalOrigin" in assignment) {
+                setOriginalPath(assignment.from); // Store original path for rules.conf entries
+              }
+
               form.setValues({
                 id: assignment.id || "",
                 priority: assignment.priority,
@@ -187,6 +210,8 @@ function RouteServerEdit() {
         from: fromPath, // Path component of the URL
         to: values.originUrl, // Full origin URL
         servers: selectedServers,
+        source: isRulesConfEntry ? "rules_conf" : "local",
+        originalPath: isRulesConfEntry ? originalPath : undefined,
       };
 
       const result = await api.post("api/route-servers", payload);
@@ -246,6 +271,13 @@ function RouteServerEdit() {
 
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="lg">
+            {isRulesConfEntry && (
+              <Alert color="orange" title="Configuration File Entry">
+                You are editing a rule from the configuration file. Only the
+                path and origin URL can be modified. Server assignments are
+                read-only.
+              </Alert>
+            )}
             <Text>
               Edit the re-streaming setup for servers. Enter the origin stream
               URL and select which servers should re-stream this content.
@@ -267,21 +299,35 @@ function RouteServerEdit() {
                 placeholder="Choose servers"
                 data={serverOptions}
                 {...form.getInputProps("servers")}
-                required
+                required={!isRulesConfEntry}
                 searchable
                 clearable
+                disabled={isRulesConfEntry}
                 mt="xs"
+                description={
+                  isRulesConfEntry
+                    ? "Server assignments cannot be changed for configuration file entries"
+                    : undefined
+                }
               />
             </Box>
 
             <Box>
               <Title order={5}>3. Stream URL example:</Title>
               {streamExample ? (
-                <Text mt="xs">{streamExample}</Text>
+                <div>
+                  <Text mt="xs">{streamExample}</Text>
+                  {form.values.servers.length > 1 && (
+                    <Text size="sm" c="dimmed" mt="xs">
+                      Similar URLs will be available on all{" "}
+                      {form.values.servers.length} selected servers
+                    </Text>
+                  )}
+                </div>
               ) : (
                 <Text mt="xs" c="dimmed">
-                  Please enter a valid origin stream URL to see example of
-                  stream URL.
+                  Please enter a valid origin stream URL and select at least one
+                  server to see the stream URL example.
                 </Text>
               )}
             </Box>

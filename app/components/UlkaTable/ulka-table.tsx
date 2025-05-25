@@ -36,27 +36,27 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
   const handleDelete = async (item: RouteServerAssignment) => {
     if (!item || !item.id) return;
 
-    // Check if this is a rules.conf item
-    if (item.source === "rules_conf") {
-      notifications.show({
-        title: "Cannot Delete",
-        message:
-          "Rules from configuration file cannot be deleted from this interface",
-        color: "orange",
-      });
-      closeDeleteModal();
-      return;
-    }
-
     try {
       setIsDeleting(true);
 
-      const result = await api.delete(`api/route-servers/${item.id}`);
+      let result;
+      if (item.source === "rules_conf") {
+        // For rules.conf entries, pass the path as a query parameter
+        result = await api.delete(
+          `api/route-servers/${item.id}?path=${encodeURIComponent(item.from)}`
+        );
+      } else {
+        // For local assignments
+        result = await api.delete(`api/route-servers/${item.id}`);
+      }
 
       if (result.success) {
         notifications.show({
           title: "Success",
-          message: "Assignment deleted successfully",
+          message:
+            item.source === "rules_conf"
+              ? "Configuration rule deleted successfully"
+              : "Assignment deleted successfully",
           color: "green",
           icon: <IconCheck size={18} />,
         });
@@ -90,17 +90,6 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
   };
 
   const handleEdit = (item: RouteServerAssignment) => {
-    // Check if this is a rules.conf item
-    if (item.source === "rules_conf") {
-      notifications.show({
-        title: "Cannot Edit",
-        message:
-          "Rules from configuration file cannot be edited from this interface",
-        color: "orange",
-      });
-      return;
-    }
-
     if (item.id) {
       router.push(`/route-servers/edit?id=${item.id}`);
     } else {
@@ -190,24 +179,22 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
               <IconQuestionMark size={18} />
             </ActionIcon>
             <ActionIcon
-              color={isFromConf ? "gray" : "blue"}
+              color="blue"
               onClick={(e) => {
                 e.stopPropagation();
                 handleEdit(params.data);
               }}
-              title={isFromConf ? "Cannot edit config file rules" : "Edit"}
-              disabled={isFromConf}
+              title={isFromConf ? "Edit config file rule (limited)" : "Edit"}
             >
               <IconPencil size={18} />
             </ActionIcon>
             <ActionIcon
-              color={isFromConf ? "gray" : "red"}
+              color="red"
               onClick={(e) => {
                 e.stopPropagation();
                 confirmDelete(params.data);
               }}
-              title={isFromConf ? "Cannot delete config file rules" : "Delete"}
-              disabled={isFromConf}
+              title={isFromConf ? "Delete config file rule" : "Delete"}
             >
               <IconTrash size={18} />
             </ActionIcon>

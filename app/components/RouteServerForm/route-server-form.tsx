@@ -58,15 +58,22 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     {}
   );
 
-  // Extract route from URL when origin URL changes
+  // Update stream examples when origin URL or selected servers change
   useEffect(() => {
-    if (originUrl) {
+    if (originUrl && selectedServerIds.length > 0) {
       try {
         const url = new URL(originUrl);
         const path = url.pathname;
-        // Set edge stream example based on the origin URL
-        if (path) {
-          setEdgeStreamExample(`http://edge-server.com${path}`);
+
+        // Get the first selected server for the example
+        const firstServerId = selectedServerIds[0];
+        const firstServer = servers.find((s) => s.id === firstServerId);
+
+        if (path && firstServer) {
+          const serverUrl = `http://${firstServer.ipAddress}:${firstServer.port}`;
+          setEdgeStreamExample(`${serverUrl}${path}`);
+        } else {
+          setEdgeStreamExample("");
         }
       } catch {
         // Invalid URL, clear the example
@@ -75,7 +82,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     } else {
       setEdgeStreamExample("");
     }
-  }, [originUrl]);
+  }, [originUrl, selectedServerIds, servers]);
 
   const handleOriginUrlChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -238,13 +245,21 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
         </Box>
 
         <Box>
-          <Title order={4}>3. Stream URL(s) example:</Title>
+          <Title order={4}>3. Stream URL example:</Title>
           {edgeStreamExample ? (
-            <Text mt="xs">{edgeStreamExample}</Text>
+            <div>
+              <Text mt="xs">{edgeStreamExample}</Text>
+              {selectedServerIds.length > 1 && (
+                <Text size="sm" c="dimmed" mt="xs">
+                  Similar URLs will be available on all{" "}
+                  {selectedServerIds.length} selected servers
+                </Text>
+              )}
+            </div>
           ) : (
             <Text mt="xs" c="dimmed">
-              Please, enter valid origin stream URL to see example of stream
-              URL.
+              Please enter a valid origin stream URL and select at least one
+              server to see the stream URL example.
             </Text>
           )}
         </Box>
