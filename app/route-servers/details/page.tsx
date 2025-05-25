@@ -28,6 +28,7 @@ function RouteServerDetail() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [assignment, setAssignment] = useState<RouteServerAssignment | null>(
     null
   );
@@ -90,6 +91,7 @@ function RouteServerDetail() {
     if (!id || !assignment) return;
 
     try {
+      setDeleting(true);
       const result = await api.delete(`api/route-servers/${id}`);
 
       if (result.success) {
@@ -113,6 +115,8 @@ function RouteServerDetail() {
         message: "An error occurred while deleting",
         color: "red",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -154,16 +158,23 @@ function RouteServerDetail() {
               leftSection={<IconArrowLeft size={14} />}
               variant="outline"
               onClick={() => router.push("/")}
+              disabled={deleting}
             >
               Back
             </Button>
-            <Button leftSection={<IconPencil size={14} />} onClick={handleEdit}>
+            <Button
+              leftSection={<IconPencil size={14} />}
+              onClick={handleEdit}
+              disabled={deleting}
+            >
               Edit
             </Button>
             <Button
               leftSection={<IconTrash size={14} />}
               color="red"
               onClick={handleDelete}
+              loading={deleting}
+              disabled={deleting}
             >
               Delete
             </Button>

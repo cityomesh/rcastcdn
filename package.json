@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rm -rf .next",
+    "clean-build": "npm run clean && npm run build"
   },
   "dependencies": {
     "@mantine/core": "^7.16.0",
