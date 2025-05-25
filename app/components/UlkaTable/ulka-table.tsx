@@ -10,25 +10,13 @@ import {
   IconPencil,
   IconTrash,
   IconCheck,
+  IconLock,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
 import { useRouter } from "next/navigation";
 import { api } from "@/app/utils/api";
-
-interface Server {
-  id: string;
-  displayName: string;
-}
-
-interface RouteServerAssignment {
-  id?: string;
-  priority: number;
-  route_kind: string;
-  from: string;
-  to: string;
-  servers: Server[];
-}
+import { RouteServerAssignment, Server } from "@/app/types/server";
 
 interface UlkaTableProps {
   data: RouteServerAssignment[];
@@ -47,6 +35,18 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
 
   const handleDelete = async (item: RouteServerAssignment) => {
     if (!item || !item.id) return;
+
+    // Check if this is a rules.conf item
+    if (item.source === "rules_conf") {
+      notifications.show({
+        title: "Cannot Delete",
+        message:
+          "Rules from configuration file cannot be deleted from this interface",
+        color: "orange",
+      });
+      closeDeleteModal();
+      return;
+    }
 
     try {
       setIsDeleting(true);
@@ -90,6 +90,17 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
   };
 
   const handleEdit = (item: RouteServerAssignment) => {
+    // Check if this is a rules.conf item
+    if (item.source === "rules_conf") {
+      notifications.show({
+        title: "Cannot Edit",
+        message:
+          "Rules from configuration file cannot be edited from this interface",
+        color: "orange",
+      });
+      return;
+    }
+
     if (item.id) {
       router.push(`/route-servers/edit?id=${item.id}`);
     } else {
@@ -140,6 +151,23 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       },
     },
     {
+      headerName: "Source",
+      field: "source",
+      width: 120,
+      sortable: true,
+      cellRenderer: (params: { data: RouteServerAssignment }) => {
+        const isFromConf = params.data.source === "rules_conf";
+        return (
+          <Group gap="xs" align="center" style={{ height: "100%" }}>
+            {isFromConf && <IconLock size={14} color="#ffa500" />}
+            <Text size="sm" c={isFromConf ? "orange" : "blue"}>
+              {isFromConf ? "Config File" : "UI Created"}
+            </Text>
+          </Group>
+        );
+      },
+    },
+    {
       headerName: "Actions",
       field: "actions",
       width: 200,
@@ -147,40 +175,45 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       pinned: "right",
       suppressSizeToFit: true,
       sortable: false,
-      cellRenderer: (params: { data: RouteServerAssignment }) => (
-        <Group gap="xs" align="center" style={{ height: "100%" }}>
-          <ActionIcon
-            color="blue"
-            onClick={(e) => {
-              e.stopPropagation();
-              showDetails(params.data);
-            }}
-            title="View details"
-          >
-            <IconQuestionMark size={18} />
-          </ActionIcon>
-          <ActionIcon
-            color="blue"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(params.data);
-            }}
-            title="Edit"
-          >
-            <IconPencil size={18} />
-          </ActionIcon>
-          <ActionIcon
-            color="red"
-            onClick={(e) => {
-              e.stopPropagation();
-              confirmDelete(params.data);
-            }}
-            title="Delete"
-          >
-            <IconTrash size={18} />
-          </ActionIcon>
-        </Group>
-      ),
+      cellRenderer: (params: { data: RouteServerAssignment }) => {
+        const isFromConf = params.data.source === "rules_conf";
+        return (
+          <Group gap="xs" align="center" style={{ height: "100%" }}>
+            <ActionIcon
+              color="blue"
+              onClick={(e) => {
+                e.stopPropagation();
+                showDetails(params.data);
+              }}
+              title="View details"
+            >
+              <IconQuestionMark size={18} />
+            </ActionIcon>
+            <ActionIcon
+              color={isFromConf ? "gray" : "blue"}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(params.data);
+              }}
+              title={isFromConf ? "Cannot edit config file rules" : "Edit"}
+              disabled={isFromConf}
+            >
+              <IconPencil size={18} />
+            </ActionIcon>
+            <ActionIcon
+              color={isFromConf ? "gray" : "red"}
+              onClick={(e) => {
+                e.stopPropagation();
+                confirmDelete(params.data);
+              }}
+              title={isFromConf ? "Cannot delete config file rules" : "Delete"}
+              disabled={isFromConf}
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Group>
+        );
+      },
     },
   ];
 

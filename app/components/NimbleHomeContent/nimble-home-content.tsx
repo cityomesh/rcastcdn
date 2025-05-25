@@ -16,10 +16,10 @@ import {
 } from "@mantine/core";
 import { useEffect, useState, useCallback } from "react";
 import { UlkaTable } from "../UlkaTable/ulka-table";
-import { RouteServerAssignment } from "./nimble-home-content.types";
+import { ClientOnly } from "../ClientOnly/client-only";
 import { api } from "@/app/utils/api";
 import { IconSearch, IconRefresh, IconFilter } from "@tabler/icons-react";
-import { StreamType } from "@/app/types/server";
+import { StreamType, RouteServerAssignment } from "@/app/types/server";
 
 export const NimbleHomeContent = () => {
   const [routeServers, setRouteServers] = useState<RouteServerAssignment[]>([]);
@@ -124,26 +124,28 @@ export const NimbleHomeContent = () => {
           </Group>
         </Group>
 
-        <Group mb="md">
-          {Object.entries(streamTypeCounts).map(([type, count]) => (
-            <Badge
-              key={type}
-              color={
-                type === StreamType.DASH
-                  ? "blue"
-                  : type === StreamType.HLS
-                  ? "green"
-                  : "violet"
-              }
-              size="lg"
-              variant={filterType === type ? "filled" : "light"}
-              style={{ cursor: "pointer" }}
-              onClick={() => setFilterType(filterType === type ? null : type)}
-            >
-              {type}: {count}
-            </Badge>
-          ))}
-        </Group>
+        <ClientOnly fallback={<Group mb="md" />}>
+          <Group mb="md">
+            {Object.entries(streamTypeCounts).map(([type, count]) => (
+              <Badge
+                key={type}
+                color={
+                  type === StreamType.DASH
+                    ? "blue"
+                    : type === StreamType.HLS
+                    ? "green"
+                    : "violet"
+                }
+                size="lg"
+                variant={filterType === type ? "filled" : "light"}
+                style={{ cursor: "pointer" }}
+                onClick={() => setFilterType(filterType === type ? null : type)}
+              >
+                {type}: {count}
+              </Badge>
+            ))}
+          </Group>
+        </ClientOnly>
       </Paper>
 
       <Paper p="md" radius="md" withBorder shadow="xs">
@@ -179,7 +181,13 @@ export const NimbleHomeContent = () => {
           </Flex>
         ) : (
           <Box>
-            <Text size="sm" fw={500} c="dimmed" mb="xs">
+            <Text
+              size="sm"
+              fw={500}
+              c="dimmed"
+              mb="xs"
+              suppressHydrationWarning
+            >
               Showing {filteredData.length} of {routeServers.length} assignments
             </Text>
             <UlkaTable data={filteredData} onDataChange={fetchRouteServers} />
