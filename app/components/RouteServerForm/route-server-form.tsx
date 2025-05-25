@@ -107,7 +107,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
 
     // Validate servers
     if (selectedServerIds.length === 0) {
-      errors.servers = "At least one edge server must be selected";
+      errors.servers = "At least one server must be selected";
       return errors;
     }
 
@@ -191,13 +191,11 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     );
   }
 
-  const serverOptions = servers
-    .filter((server) => server.serverType === "edge") // Only show edge servers
-    .map((server) => ({
-      value: server.id,
-      label: server.displayName,
-      description: `${server.ipAddress}:${server.port}`,
-    }));
+  const serverOptions = servers.map((server) => ({
+    value: server.id,
+    label: `${server.displayName} (${server.serverType})`,
+    description: `${server.ipAddress}:${server.port}`,
+  }));
 
   return (
     <form onSubmit={handleSubmit}>
@@ -223,7 +221,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
         </Box>
 
         <Box>
-          <Title order={4}>2. Select edge servers:</Title>
+          <Title order={4}>2. Select servers:</Title>
           <MultiSelect
             placeholder="Choose servers"
             data={serverOptions}
@@ -233,20 +231,20 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
             required
             clearable
             maxDropdownHeight={400}
-            nothingFoundMessage="No edge servers found"
+            nothingFoundMessage="No servers found"
             error={validationErrors.servers}
             mt="xs"
           />
         </Box>
 
         <Box>
-          <Title order={4}>3. Edge stream URL(s) example:</Title>
+          <Title order={4}>3. Stream URL(s) example:</Title>
           {edgeStreamExample ? (
             <Text mt="xs">{edgeStreamExample}</Text>
           ) : (
             <Text mt="xs" c="dimmed">
-              Please, enter valid origin stream URL to see example of edge
-              stream URL.
+              Please, enter valid origin stream URL to see example of stream
+              URL.
             </Text>
           )}
         </Box>

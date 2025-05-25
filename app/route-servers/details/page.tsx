@@ -18,8 +18,9 @@ import {
 } from "@mantine/core";
 import { IconArrowLeft, IconPencil, IconTrash } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
-import { RouteServerAssignment } from "@/app/components/NimbleHomeContent/nimble-home-content.types";
+// import { RouteServerAssignment } from "@/app/types/server";
 import { api } from "@/app/utils/api";
+import { RouteServerAssignment } from "@/app/types/server";
 
 // Create a component to use search params
 function RouteServerDetail() {

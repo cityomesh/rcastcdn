@@ -37,7 +37,7 @@ function RouteServerEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [serverOptions, setServerOptions] = useState<ServerOption[]>([]);
-  const [edgeStreamExample, setEdgeStreamExample] = useState<string>("");
+  const [streamExample, setStreamExample] = useState<string>("");
 
   const form = useForm({
     initialValues: {
@@ -61,18 +61,18 @@ function RouteServerEdit() {
     },
   });
 
-  // Update edge stream example whenever origin URL changes
+  // Update stream example whenever origin URL changes
   useEffect(() => {
     try {
       const url = new URL(form.values.originUrl);
       const path = url.pathname;
       if (path) {
-        setEdgeStreamExample(`http://edge-server.com${path}`);
+        setStreamExample(`http://server.com${path}`);
       } else {
-        setEdgeStreamExample("");
+        setStreamExample("");
       }
     } catch {
-      setEdgeStreamExample("");
+      setStreamExample("");
     }
   }, [form.values.originUrl]);
 
@@ -90,23 +90,20 @@ function RouteServerEdit() {
         const serversResult = await api.get("api/servers");
 
         if (serversResult.success) {
-          // Filter for only edge servers
-          const options = serversResult.data
-            .filter(
-              (server: { serverType: string }) => server.serverType === "edge"
-            )
-            .map(
-              (server: {
-                id: string;
-                displayName: string;
-                ipAddress: string;
-                port: number;
-              }) => ({
-                value: server.id,
-                label: server.displayName,
-                description: `${server.ipAddress}:${server.port}`,
-              })
-            );
+          // Include all servers (both origin and edge)
+          const options = serversResult.data.map(
+            (server: {
+              id: string;
+              displayName: string;
+              ipAddress: string;
+              port: number;
+              serverType: string;
+            }) => ({
+              value: server.id,
+              label: `${server.displayName} (${server.serverType})`,
+              description: `${server.ipAddress}:${server.port}`,
+            })
+          );
           setServerOptions(options);
         }
 
@@ -250,9 +247,8 @@ function RouteServerEdit() {
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="lg">
             <Text>
-              Edit the re-streaming setup for edge servers. Enter the origin
-              stream URL and select which edge servers should re-stream this
-              content.
+              Edit the re-streaming setup for servers. Enter the origin stream
+              URL and select which servers should re-stream this content.
             </Text>
 
             <Box>
@@ -266,7 +262,7 @@ function RouteServerEdit() {
             </Box>
 
             <Box>
-              <Title order={5}>2. Select edge servers:</Title>
+              <Title order={5}>2. Select servers:</Title>
               <MultiSelect
                 placeholder="Choose servers"
                 data={serverOptions}
@@ -279,12 +275,12 @@ function RouteServerEdit() {
             </Box>
 
             <Box>
-              <Title order={5}>3. Edge stream URL example:</Title>
-              {edgeStreamExample ? (
-                <Text mt="xs">{edgeStreamExample}</Text>
+              <Title order={5}>3. Stream URL example:</Title>
+              {streamExample ? (
+                <Text mt="xs">{streamExample}</Text>
               ) : (
                 <Text mt="xs" c="dimmed">
-                  Please enter a valid origin stream URL to see example of edge
+                  Please enter a valid origin stream URL to see example of
                   stream URL.
                 </Text>
               )}
