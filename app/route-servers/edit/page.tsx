@@ -20,8 +20,7 @@ import {
 import { useForm } from "@mantine/form";
 import { IconArrowLeft, IconDeviceFloppy } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
-import { RouteServerAssignment } from "@/app/components/NimbleHomeContent/nimble-home-content.types";
-import { StreamType } from "@/app/types/server";
+import { RouteServerAssignment, StreamType } from "@/app/types/server";
 import { api } from "@/app/utils/api";
 
 interface ServerOption {
@@ -111,7 +110,6 @@ function RouteServerEdit() {
           setServerOptions(options);
         }
 
-        // If editing existing assignment, fetch details
         if (id) {
           const assignmentsResult = await api.get("api/route-servers");
 
@@ -121,11 +119,10 @@ function RouteServerEdit() {
             );
 
             if (assignment) {
-              // Update form values
               form.setValues({
                 id: assignment.id || "",
                 priority: assignment.priority,
-                originUrl: assignment.to, // Using 'to' as the full origin URL
+                originUrl: assignment.to,
                 servers: assignment.servers.map(
                   (server: { id: string; displayName: string }) => server.id
                 ),
@@ -153,13 +150,13 @@ function RouteServerEdit() {
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router]);
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
       setSaving(true);
 
-      // Extract path from the origin URL
       let fromPath = "";
       try {
         const url = new URL(values.originUrl);
