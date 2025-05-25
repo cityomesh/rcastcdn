@@ -100,7 +100,7 @@ export const ServersTable = ({
       sortable: true,
     },
     {
-      headerName: "Origin IP:Port",
+      headerName: "Output IP:Port",
       field: "originIpWithPort",
       flex: 1,
       sortable: true,

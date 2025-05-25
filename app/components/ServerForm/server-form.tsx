@@ -116,7 +116,8 @@ export function ServerForm({
         return null;
       },
       originIpWithPort: (value: string) => {
-        if (!value) return "Origin IP with port is required";
+        if (!value)
+          return "Output IP with port is required (e.g., 192.168.1.1:8080)";
         // Validate IP:Port format (e.g., 192.168.1.1:8080)
         const ipPortRegex = /^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$/;
         if (!ipPortRegex.test(value)) {
@@ -126,7 +127,7 @@ export function ServerForm({
         const [ipPart, portPart] = value.split(":");
         const ipOctets = ipPart.split(".").map(Number);
         if (!ipOctets.every((octet) => octet >= 0 && octet <= 255)) {
-          return "Origin IP address octets must be between 0 and 255";
+          return "Output IP address octets must be between 0 and 255";
         }
         // Validate port part
         const port = parseInt(portPart);
@@ -392,7 +393,7 @@ export function ServerForm({
 
                 <TextInput
                   required
-                  label={<Text fw={500}>Origin IP with Port</Text>}
+                  label={<Text fw={500}>Output IP with Port</Text>}
                   placeholder="192.168.1.1:8080"
                   leftSection={<IconNetwork size={16} />}
                   {...form.getInputProps("originIpWithPort")}
