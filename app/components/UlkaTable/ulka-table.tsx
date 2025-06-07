@@ -140,17 +140,62 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       },
     },
     {
+      headerName: "Source Server",
+      field: "sourceServer",
+      flex: 1,
+      sortable: true,
+      cellRenderer: (params: {
+        data: RouteServerAssignment & {
+          sourceServer?: {
+            displayName: string;
+            ipAddress: string;
+            serverType: string;
+          };
+        };
+      }) => {
+        const sourceServer = params.data.sourceServer;
+        if (sourceServer) {
+          return (
+            <Group gap="xs" align="center" style={{ height: "100%" }}>
+              <Text size="sm" c="blue">
+                {sourceServer.displayName} ({sourceServer.ipAddress})
+              </Text>
+              <Text size="xs" c="dimmed">
+                [{sourceServer.serverType}]
+              </Text>
+            </Group>
+          );
+        }
+        return (
+          <Text size="sm" c="dimmed">
+            UI Created
+          </Text>
+        );
+      },
+    },
+    {
       headerName: "Source",
       field: "source",
       width: 120,
       sortable: true,
       cellRenderer: (params: { data: RouteServerAssignment }) => {
-        const isFromConf = params.data.source === "rules_conf";
+        const source = params.data.source;
+        const isFromServer = source === "server_rules";
+        const isFromConf = source === "rules_conf";
         return (
           <Group gap="xs" align="center" style={{ height: "100%" }}>
-            {isFromConf && <IconLock size={14} color="#ffa500" />}
-            <Text size="sm" c={isFromConf ? "orange" : "blue"}>
-              {isFromConf ? "Config File" : "UI Created"}
+            {(isFromConf || isFromServer) && (
+              <IconLock size={14} color="#ffa500" />
+            )}
+            <Text
+              size="sm"
+              c={isFromServer ? "green" : isFromConf ? "orange" : "blue"}
+            >
+              {isFromServer
+                ? "Server Rules"
+                : isFromConf
+                ? "Config File"
+                : "UI Created"}
             </Text>
           </Group>
         );
@@ -165,7 +210,11 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       suppressSizeToFit: true,
       sortable: false,
       cellRenderer: (params: { data: RouteServerAssignment }) => {
-        const isFromConf = params.data.source === "rules_conf";
+        const source = params.data.source;
+        const isFromConf = source === "rules_conf";
+        const isFromServer = source === "server_rules";
+        const isReadOnly = isFromConf || isFromServer;
+
         return (
           <Group gap="xs" align="center" style={{ height: "100%" }}>
             <ActionIcon
@@ -184,7 +233,14 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
                 e.stopPropagation();
                 handleEdit(params.data);
               }}
-              title={isFromConf ? "Edit config file rule (limited)" : "Edit"}
+              title={
+                isFromServer
+                  ? "Edit server rule (limited)"
+                  : isFromConf
+                  ? "Edit config file rule (limited)"
+                  : "Edit"
+              }
+              disabled={isReadOnly}
             >
               <IconPencil size={18} />
             </ActionIcon>
@@ -194,7 +250,14 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
                 e.stopPropagation();
                 confirmDelete(params.data);
               }}
-              title={isFromConf ? "Delete config file rule" : "Delete"}
+              title={
+                isFromServer
+                  ? "Delete server rule"
+                  : isFromConf
+                  ? "Delete config file rule"
+                  : "Delete"
+              }
+              disabled={isReadOnly}
             >
               <IconTrash size={18} />
             </ActionIcon>
