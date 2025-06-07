@@ -100,13 +100,6 @@ export function ServerForm({
       },
       sshPassword: (value: string) => {
         if (!value) return "SSH password is required";
-        if (value.length < 8) return "Password must be at least 8 characters";
-        if (value.length > 128)
-          return "Password must be at most 128 characters";
-        // Check for at least one lowercase and one number
-        if (!/(?=.*[a-z])(?=.*\d)/.test(value)) {
-          return "Password must contain at least one lowercase letter and one number";
-        }
         return null;
       },
       port: (value: number) => {
@@ -463,7 +456,7 @@ export function ServerForm({
                   {...form.getInputProps("sshPassword")}
                   description={
                     <Text component="span" size="xs" c="dimmed">
-                      Strong password for SSH authentication
+                      Password for SSH authentication
                     </Text>
                   }
                   styles={{
@@ -481,13 +474,14 @@ export function ServerForm({
 
                 <Alert icon={<IconAlertCircle size={16} />} color="blue">
                   <Text size="sm" mb={8} fw={500}>
-                    Security Best Practices
+                    Security Information
                   </Text>
                   <Text size="xs" c="dimmed">
-                    • Use strong passwords with mixed case, numbers & symbols
+                    • Enter the password for your SSH server
                     <br />
-                    • Regularly rotate SSH credentials
-                    <br />• Consider using SSH keys for enhanced security
+                    • Ensure you have the correct credentials for authentication
+                    <br />• Contact your system administrator if you need
+                    assistance
                   </Text>
                 </Alert>
               </Stack>
