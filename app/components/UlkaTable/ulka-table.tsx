@@ -213,7 +213,8 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
         const source = params.data.source;
         const isFromConf = source === "rules_conf";
         const isFromServer = source === "server_rules";
-        const isReadOnly = isFromConf || isFromServer;
+        // Only disable rules_conf entries, allow server_rules to be edited/deleted
+        const isReadOnly = isFromConf;
 
         return (
           <Group gap="xs" align="center" style={{ height: "100%" }}>
@@ -235,7 +236,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
               }}
               title={
                 isFromServer
-                  ? "Edit server rule (limited)"
+                  ? "Edit server rule"
                   : isFromConf
                   ? "Edit config file rule (limited)"
                   : "Edit"
