@@ -18,6 +18,7 @@ import { useEffect, useState, useCallback } from "react";
 import { UlkaTable } from "../UlkaTable/ulka-table";
 import { ClientOnly } from "../ClientOnly/client-only";
 import { api } from "@/app/utils/api";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { IconSearch, IconRefresh, IconFilter } from "@tabler/icons-react";
 import { StreamType, RouteServerAssignment } from "@/app/types/server";
 
@@ -28,8 +29,16 @@ export const NimbleHomeContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
   const fetchRouteServers = useCallback(async () => {
+    if (!user) {
+      console.log("User not authenticated, skipping route servers fetch");
+      setLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
     setLoading(true);
     setIsRefreshing(true);
     try {
@@ -44,11 +53,21 @@ export const NimbleHomeContent = () => {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    fetchRouteServers();
-  }, [fetchRouteServers]);
+    if (!authLoading) {
+      if (user) {
+        console.log("User authenticated, fetching route servers");
+        fetchRouteServers();
+      } else {
+        console.log("User not authenticated, clearing route servers data");
+        setRouteServers([]);
+        setFilteredData([]);
+        setLoading(false);
+      }
+    }
+  }, [user, authLoading, fetchRouteServers]);
 
   useEffect(() => {
     // Apply filters when searchTerm or filterType changes

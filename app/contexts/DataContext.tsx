@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Server, Route } from "../types/server";
 import { api } from "../utils/api";
+import { useAuth } from "./AuthContext";
 
 interface DataContextType {
   servers: Server[];
@@ -22,8 +23,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [servers, setServers] = useState<Server[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   const refreshData = async () => {
+    // Don't fetch data if user is not authenticated
+    if (!user) {
+      console.log("User not authenticated, skipping data fetch");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       console.log("Fetching data...");
@@ -56,8 +65,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    refreshData();
-  }, []);
+    if (!authLoading) {
+      if (user) {
+        console.log("User authenticated, fetching data");
+        refreshData();
+      } else {
+        console.log("User not authenticated, clearing data");
+        setServers([]);
+        setRoutes([]);
+        setLoading(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
 
   return (
     <DataContext.Provider value={{ servers, routes, loading, refreshData }}>
