@@ -14,40 +14,15 @@ export const getApiUrl = (endpoint: string): string => {
 };
 
 /**
- * Get authentication headers if token is available
- */
-const getAuthHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem("auth_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-/**
  * Fetches data from the API with the given options
  */
 export const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const url = getApiUrl(endpoint);
 
-  // Merge authentication headers with existing headers
-  const headers = {
-    ...getAuthHeaders(),
-    ...options?.headers,
-  };
-
-  const requestOptions = {
-    ...options,
-    headers,
-  };
-
   try {
-    const response = await fetch(url, requestOptions);
+    const response = await fetch(url, options);
 
     if (!response.ok) {
-      // If unauthorized, remove token but don't redirect here
-      // Let the ProtectedRoute component handle redirects
-      if (response.status === 401) {
-        localStorage.removeItem("auth_token");
-        throw new Error("Authentication required");
-      }
       throw new Error(`API error: ${response.status}`);
     }
 

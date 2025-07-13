@@ -3,14 +3,12 @@
 import { Paper, Stack, Title, Loader, Text } from "@mantine/core";
 import { RoutesTable } from "../components/RoutesTable/routes-table";
 import { useData } from "../contexts/DataContext";
-import { useAuth } from "../contexts/AuthContext";
 import { Route } from "../types/server";
 import { useEffect, useState } from "react";
 import { api } from "../utils/api";
 
 export default function RoutesPage() {
   const { servers, routes, refreshData } = useData();
-  const { user, loading: authLoading } = useAuth();
   const [loadingRoutes, setLoadingRoutes] = useState(true);
 
   const handleCreateRoute = async (
@@ -44,13 +42,6 @@ export default function RoutesPage() {
   // Fetch routes data
   useEffect(() => {
     const fetchRoutes = async () => {
-      // Don't fetch data if user is not authenticated
-      if (!user) {
-        console.log("User not authenticated, skipping routes fetch");
-        setLoadingRoutes(false);
-        return;
-      }
-
       setLoadingRoutes(true);
       try {
         const result = await api.get("api/rules");
@@ -64,17 +55,8 @@ export default function RoutesPage() {
       }
     };
 
-    // Only fetch data if auth is done loading
-    if (!authLoading) {
-      if (user) {
-        console.log("User authenticated, fetching routes data");
-        fetchRoutes();
-      } else {
-        console.log("User not authenticated, clearing routes loading state");
-        setLoadingRoutes(false);
-      }
-    }
-  }, [user, authLoading]);
+    fetchRoutes();
+  }, []);
 
   if (loadingRoutes) {
     return (
