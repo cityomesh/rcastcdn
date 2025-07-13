@@ -2,6 +2,7 @@
 
 import { Paper, Stack, Title } from "@mantine/core";
 import { ServersTable } from "../components/ServersTable/servers-table";
+import { ProtectedRoute } from "../components/ProtectedRoute/protected-route";
 import { useData, Server } from "../contexts/DataContext";
 import { api } from "../utils/api";
 
@@ -54,23 +55,25 @@ export default function ServersPage() {
   }
 
   return (
-    <Paper
-      p="md"
-      style={{
-        boxShadow:
-          "0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0px 0 1px rgba(10, 10, 10, 0.02)",
-      }}
-    >
-      <Stack gap="lg">
-        <Title order={2}>Servers</Title>
-        <ServersTable
-          data={servers}
-          onCreateServer={handleCreateServer}
-          onUpdateServer={handleUpdateServer}
-          onDeleteServer={handleDeleteServer}
-          onCheckHealth={handleCheckHealth}
-        />
-      </Stack>
-    </Paper>
+    <ProtectedRoute>
+      <Paper
+        p="md"
+        style={{
+          boxShadow:
+            "0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0px 0 1px rgba(10, 10, 10, 0.02)",
+        }}
+      >
+        <Stack gap="lg">
+          <Title order={2}>Servers</Title>
+          <ServersTable
+            data={servers}
+            onCreateServer={handleCreateServer}
+            onUpdateServer={handleUpdateServer}
+            onDeleteServer={handleDeleteServer}
+            onCheckHealth={handleCheckHealth}
+          />
+        </Stack>
+      </Paper>
+    </ProtectedRoute>
   );
 }

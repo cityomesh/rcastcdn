@@ -19,10 +19,37 @@ export const getApiUrl = (endpoint: string): string => {
 export const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const url = getApiUrl(endpoint);
 
+  // Get auth token from localStorage
+  const token = localStorage.getItem("auth-token");
+
+  // Merge default headers with provided options
+  const defaultHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    defaultHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
+  const mergedOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options?.headers,
+    },
+  };
+
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(url, mergedOptions);
 
     if (!response.ok) {
+      // Handle authentication errors
+      if (response.status === 401) {
+        // Token expired or invalid, redirect to login
+        localStorage.removeItem("auth-token");
+        window.location.href = "/login";
+        return;
+      }
       throw new Error(`API error: ${response.status}`);
     }
 

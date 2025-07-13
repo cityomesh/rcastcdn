@@ -11,6 +11,7 @@ import {
 import { Notifications } from "@mantine/notifications";
 import { NimbleServerHeader } from "./components/NimbleServerHeader/nimble-server-header";
 import { DataProvider } from "./contexts/DataContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,10 +61,12 @@ export default function RootLayout({
           defaultColorScheme="dark"
         >
           <Notifications position="top-right" zIndex={1000} />
-          <DataProvider>
-            <NimbleServerHeader />
-            {children}
-          </DataProvider>
+          <AuthProvider>
+            <DataProvider>
+              <NimbleServerHeader />
+              {children}
+            </DataProvider>
+          </AuthProvider>
         </MantineProvider>
       </body>
     </html>

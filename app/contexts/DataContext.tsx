@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Server, Route } from "../types/server";
 import { api } from "../utils/api";
+import { useAuth } from "./AuthContext";
 
 interface DataContextType {
   servers: Server[];
@@ -21,12 +22,20 @@ const DataContext = createContext<DataContextType>({
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [servers, setServers] = useState<Server[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const refreshData = async () => {
+    // Only fetch data if user is authenticated
+    if (!isAuthenticated) {
+      console.log("User not authenticated, skipping data fetch");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      console.log("Fetching data...");
+      console.log("Fetching data for authenticated user...");
 
       // Fetch servers and rules in parallel using the API utility
       const [serversData, rulesData] = await Promise.all([
@@ -55,9 +64,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Only fetch data when authentication is complete and user is authenticated
   useEffect(() => {
-    refreshData();
-  }, []);
+    if (authLoading) {
+      console.log("Auth still loading, waiting...");
+      return;
+    }
+
+    if (isAuthenticated) {
+      console.log("User authenticated, fetching data...");
+      refreshData();
+    } else {
+      console.log("User not authenticated, clearing data...");
+      setServers([]);
+      setRoutes([]);
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading]);
 
   return (
     <DataContext.Provider value={{ servers, routes, loading, refreshData }}>

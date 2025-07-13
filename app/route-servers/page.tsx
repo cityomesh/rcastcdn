@@ -19,6 +19,7 @@ import {
 } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import RouteServerForm from "../components/RouteServerForm/route-server-form";
+import { ProtectedRoute } from "../components/ProtectedRoute/protected-route";
 import { useData } from "../contexts/DataContext";
 import Link from "next/link";
 import { api } from "@/app/utils/api";
@@ -76,61 +77,63 @@ export default function RouteServersPage() {
   };
 
   return (
-    <>
-      <Notifications />
-      <Container size="xl" py="xl">
-        <Flex direction="column" gap="lg">
-          <Group justify="space-between" align="center" mb="md">
-            <Group gap="md">
-              <Link href="/" style={{ textDecoration: "none" }}>
-                <Button
-                  variant="subtle"
-                  leftSection={<IconArrowLeft size={16} />}
-                  color="blue"
-                >
-                  Back to Overview
-                </Button>
-              </Link>
-              <Title order={2}>Create Re-streaming Route</Title>
-            </Group>
-            {refreshing && <Loader size="sm" />}
-          </Group>
-
-          <Paper p="xl" withBorder>
-            {showForm ? (
-              <RouteServerForm onSubmit={handleSubmit} />
-            ) : (
-              <Flex
-                direction="column"
-                align="center"
-                justify="center"
-                mih={300}
-                gap="md"
-              >
-                <Text size="xl" fw={500}>
-                  Route created successfully!
-                </Text>
-                <Text c="dimmed" ta="center" maw={600} mb="lg">
-                  Your re-streaming route has been created. You can view it on
-                  the home page.
-                </Text>
-                <Group>
-                  <Link href="/" style={{ textDecoration: "none" }}>
-                    <Button color="blue">Go to Overview</Button>
-                  </Link>
+    <ProtectedRoute>
+      <>
+        <Notifications />
+        <Container size="xl" py="xl">
+          <Flex direction="column" gap="lg">
+            <Group justify="space-between" align="center" mb="md">
+              <Group gap="md">
+                <Link href="/" style={{ textDecoration: "none" }}>
                   <Button
-                    variant="outline"
-                    onClick={toggleForm}
-                    leftSection={<IconPlus size={16} />}
+                    variant="subtle"
+                    leftSection={<IconArrowLeft size={16} />}
+                    color="blue"
                   >
-                    Create Another Route
+                    Back to Overview
                   </Button>
-                </Group>
-              </Flex>
-            )}
-          </Paper>
-        </Flex>
-      </Container>
-    </>
+                </Link>
+                <Title order={2}>Create Re-streaming Route</Title>
+              </Group>
+              {refreshing && <Loader size="sm" />}
+            </Group>
+
+            <Paper p="xl" withBorder>
+              {showForm ? (
+                <RouteServerForm onSubmit={handleSubmit} />
+              ) : (
+                <Flex
+                  direction="column"
+                  align="center"
+                  justify="center"
+                  mih={300}
+                  gap="md"
+                >
+                  <Text size="xl" fw={500}>
+                    Route created successfully!
+                  </Text>
+                  <Text c="dimmed" ta="center" maw={600} mb="lg">
+                    Your re-streaming route has been created. You can view it on
+                    the home page.
+                  </Text>
+                  <Group>
+                    <Link href="/" style={{ textDecoration: "none" }}>
+                      <Button color="blue">Go to Overview</Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      onClick={toggleForm}
+                      leftSection={<IconPlus size={16} />}
+                    >
+                      Create Another Route
+                    </Button>
+                  </Group>
+                </Flex>
+              )}
+            </Paper>
+          </Flex>
+        </Container>
+      </>
+    </ProtectedRoute>
   );
 }
