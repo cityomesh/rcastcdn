@@ -24,6 +24,7 @@ import {
   IconAlertCircle,
 } from "@tabler/icons-react";
 import { Server } from "@/app/types/server";
+import { api } from "@/app/utils/api";
 
 interface ServerFormData {
   displayName: string;
@@ -39,7 +40,7 @@ interface ServerFormData {
 interface ServerFormProps {
   opened: boolean;
   onClose: () => void;
-  initialValues?: ServerFormData;
+  initialValues?: Server | ServerFormData;
   onSubmit: (values: ServerFormData) => void;
   title: string;
 }
@@ -55,7 +56,7 @@ export function ServerForm({
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ServerFormData>({
-    initialValues: initialValues || {
+    initialValues: {
       displayName: "",
       ipAddress: "",
       sshUsername: "",
@@ -99,13 +100,6 @@ export function ServerForm({
       },
       sshPassword: (value: string) => {
         if (!value) return "SSH password is required";
-        if (value.length < 8) return "Password must be at least 8 characters";
-        if (value.length > 128)
-          return "Password must be at most 128 characters";
-        // Check for at least one lowercase and one number
-        if (!/(?=.*[a-z])(?=.*\d)/.test(value)) {
-          return "Password must contain at least one lowercase letter and one number";
-        }
         return null;
       },
       port: (value: number) => {
@@ -115,7 +109,8 @@ export function ServerForm({
         return null;
       },
       originIpWithPort: (value: string) => {
-        if (!value) return "Origin IP with port is required";
+        if (!value)
+          return "Output IP with port is required (e.g., 192.168.1.1:8080)";
         // Validate IP:Port format (e.g., 192.168.1.1:8080)
         const ipPortRegex = /^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$/;
         if (!ipPortRegex.test(value)) {
@@ -125,7 +120,7 @@ export function ServerForm({
         const [ipPart, portPart] = value.split(":");
         const ipOctets = ipPart.split(".").map(Number);
         if (!ipOctets.every((octet) => octet >= 0 && octet <= 255)) {
-          return "Origin IP address octets must be between 0 and 255";
+          return "Output IP address octets must be between 0 and 255";
         }
         // Validate port part
         const port = parseInt(portPart);
@@ -144,12 +139,36 @@ export function ServerForm({
   });
 
   useEffect(() => {
+    // Reset the form when modal is closed
+    if (!opened) {
+      form.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened]);
+
+  useEffect(() => {
+    // Update form values when initialValues change and modal is open
+    if (initialValues && opened) {
+      form.setValues({
+        displayName: initialValues.displayName || "",
+        ipAddress: initialValues.ipAddress || "",
+        sshUsername: initialValues.sshUsername || "",
+        sshPassword: initialValues.sshPassword || "",
+        port: initialValues.port || 22,
+        originIpWithPort: initialValues.originIpWithPort || "",
+        serverType: initialValues.serverType || "origin",
+        parentServerId: initialValues.parentServerId,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValues, opened]);
+
+  useEffect(() => {
     const fetchServers = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/servers");
-        const data = await response.json();
-        setAvailableServers(data);
+        const data = await api.get("api/servers");
+        setAvailableServers(data.data);
       } catch (error) {
         console.error("Error fetching servers:", error);
       } finally {
@@ -367,7 +386,7 @@ export function ServerForm({
 
                 <TextInput
                   required
-                  label={<Text fw={500}>Origin IP with Port</Text>}
+                  label={<Text fw={500}>Output IP with Port</Text>}
                   placeholder="192.168.1.1:8080"
                   leftSection={<IconNetwork size={16} />}
                   {...form.getInputProps("originIpWithPort")}
@@ -437,7 +456,7 @@ export function ServerForm({
                   {...form.getInputProps("sshPassword")}
                   description={
                     <Text component="span" size="xs" c="dimmed">
-                      Strong password for SSH authentication
+                      Password for SSH authentication
                     </Text>
                   }
                   styles={{
@@ -455,13 +474,14 @@ export function ServerForm({
 
                 <Alert icon={<IconAlertCircle size={16} />} color="blue">
                   <Text size="sm" mb={8} fw={500}>
-                    Security Best Practices
+                    Security Information
                   </Text>
                   <Text size="xs" c="dimmed">
-                    • Use strong passwords with mixed case, numbers & symbols
+                    • Enter the password for your SSH server
                     <br />
-                    • Regularly rotate SSH credentials
-                    <br />• Consider using SSH keys for enhanced security
+                    • Ensure you have the correct credentials for authentication
+                    <br />• Contact your system administrator if you need
+                    assistance
                   </Text>
                 </Alert>
               </Stack>

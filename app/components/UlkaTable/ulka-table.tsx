@@ -4,39 +4,19 @@ import { AgGridTable } from "../AgGridTable/ag-grid-table";
 import { ColDef } from "ag-grid-community";
 import { useState } from "react";
 import "./ulka-table.css";
-import {
-  ActionIcon,
-  Group,
-  Stack,
-  Paper,
-  Modal,
-  Text,
-  Button,
-  Loader,
-} from "@mantine/core";
+import { ActionIcon, Group, Paper, Modal, Text, Button } from "@mantine/core";
 import {
   IconQuestionMark,
   IconPencil,
   IconTrash,
   IconCheck,
+  IconLock,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
 import { useRouter } from "next/navigation";
-
-interface Server {
-  id: string;
-  displayName: string;
-}
-
-interface RouteServerAssignment {
-  id?: string;
-  priority: number;
-  route_kind: string;
-  from: string;
-  to: string;
-  servers: Server[];
-}
+import { api } from "@/app/utils/api";
+import { RouteServerAssignment, Server } from "@/app/types/server";
 
 interface UlkaTableProps {
   data: RouteServerAssignment[];
@@ -59,14 +39,24 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
     try {
       setIsDeleting(true);
 
-      const response = await fetch(`/api/route-servers?id=${item.id}`, {
-        method: "DELETE",
-      });
+      let result;
+      if (item.source === "rules_conf") {
+        // For rules.conf entries, pass the path as a query parameter
+        result = await api.delete(
+          `api/route-servers/${item.id}?path=${encodeURIComponent(item.from)}`
+        );
+      } else {
+        // For local assignments
+        result = await api.delete(`api/route-servers/${item.id}`);
+      }
 
-      if (response.ok) {
+      if (result.success) {
         notifications.show({
           title: "Success",
-          message: "Assignment deleted successfully",
+          message:
+            item.source === "rules_conf"
+              ? "Configuration rule deleted successfully"
+              : "Assignment deleted successfully",
           color: "green",
           icon: <IconCheck size={18} />,
         });
@@ -150,47 +140,131 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       },
     },
     {
-      headerName: "",
+      headerName: "Source Server",
+      field: "sourceServer",
+      flex: 1,
+      sortable: true,
+      cellRenderer: (params: {
+        data: RouteServerAssignment & {
+          sourceServer?: {
+            displayName: string;
+            ipAddress: string;
+            serverType: string;
+          };
+        };
+      }) => {
+        const sourceServer = params.data.sourceServer;
+        if (sourceServer) {
+          return (
+            <Group gap="xs" align="center" style={{ height: "100%" }}>
+              <Text size="sm" c="blue">
+                {sourceServer.displayName} ({sourceServer.ipAddress})
+              </Text>
+              <Text size="xs" c="dimmed">
+                [{sourceServer.serverType}]
+              </Text>
+            </Group>
+          );
+        }
+        return (
+          <Text size="sm" c="dimmed">
+            UI Created
+          </Text>
+        );
+      },
+    },
+    {
+      headerName: "Source",
+      field: "source",
+      width: 120,
+      sortable: true,
+      cellRenderer: (params: { data: RouteServerAssignment }) => {
+        const source = params.data.source;
+        const isFromServer = source === "server_rules";
+        const isFromConf = source === "rules_conf";
+        return (
+          <Group gap="xs" align="center" style={{ height: "100%" }}>
+            {(isFromConf || isFromServer) && (
+              <IconLock size={14} color="#ffa500" />
+            )}
+            <Text
+              size="sm"
+              c={isFromServer ? "green" : isFromConf ? "orange" : "blue"}
+            >
+              {isFromServer
+                ? "Server Rules"
+                : isFromConf
+                ? "Config File"
+                : "UI Created"}
+            </Text>
+          </Group>
+        );
+      },
+    },
+    {
+      headerName: "Actions",
       field: "actions",
-      flex: 0.5,
+      width: 200,
+      minWidth: 180,
+      pinned: "right",
+      suppressSizeToFit: true,
       sortable: false,
-      cellRenderer: (params: { data: RouteServerAssignment }) => (
-        <Group gap="xs" justify="flex-end">
-          <ActionIcon
-            variant="subtle"
-            color="#097bd3"
-            onClick={(e) => {
-              e.stopPropagation();
-              showDetails(params.data);
-            }}
-            title="View details"
-          >
-            <IconQuestionMark size={18} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="#097bd3"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(params.data);
-            }}
-            title="Edit"
-          >
-            <IconPencil size={18} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="#097bd3"
-            onClick={(e) => {
-              e.stopPropagation();
-              confirmDelete(params.data);
-            }}
-            title="Delete"
-          >
-            <IconTrash size={18} />
-          </ActionIcon>
-        </Group>
-      ),
+      cellRenderer: (params: { data: RouteServerAssignment }) => {
+        const source = params.data.source;
+        const isFromConf = source === "rules_conf";
+        const isFromServer = source === "server_rules";
+        // Only disable rules_conf entries, allow server_rules to be edited/deleted
+        const isReadOnly = isFromConf;
+
+        return (
+          <Group gap="xs" align="center" style={{ height: "100%" }}>
+            <ActionIcon
+              color="blue"
+              onClick={(e) => {
+                e.stopPropagation();
+                showDetails(params.data);
+              }}
+              title="View details"
+            >
+              <IconQuestionMark size={18} />
+            </ActionIcon>
+            <ActionIcon
+              color="blue"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(params.data);
+              }}
+              title={
+                isFromServer
+                  ? "Edit server rule"
+                  : isFromConf
+                  ? "Edit config file rule (limited)"
+                  : "Edit"
+              }
+              disabled={isReadOnly}
+            >
+              <IconPencil size={18} />
+            </ActionIcon>
+            <ActionIcon
+              color="red"
+              onClick={(e) => {
+                e.stopPropagation();
+                confirmDelete(params.data);
+              }}
+              title={
+                isFromServer
+                  ? "Delete server rule"
+                  : isFromConf
+                  ? "Delete config file rule"
+                  : "Delete"
+              }
+              disabled={isReadOnly}
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Group>
+        );
+      },
     },
   ];
 

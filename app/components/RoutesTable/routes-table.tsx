@@ -122,8 +122,19 @@ export const RoutesTable = ({
             }
           }}
           variant="filled"
-          color="blue"
+          color="red"
           disabled={servers.length === 0}
+          styles={{
+            root: {
+              boxShadow:
+                "0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0px 0 1px rgba(10, 10, 10, 0.02)",
+              fontWeight: 500,
+              "&:hover": {
+                boxShadow:
+                  "0 0.6em 1.2em -0.1em rgba(10, 10, 10, 0.15), 0 0px 0 1px rgba(10, 10, 10, 0.03)",
+              },
+            },
+          }}
         >
           Add Route
         </Button>

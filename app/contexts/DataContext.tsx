@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Server, Route } from "../types/server";
+import { api } from "../utils/api";
+import { useAuth } from "./AuthContext";
 
 interface DataContextType {
   servers: Server[];
@@ -20,26 +22,25 @@ const DataContext = createContext<DataContextType>({
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [servers, setServers] = useState<Server[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const refreshData = async () => {
+    // Only fetch data if user is authenticated
+    if (!isAuthenticated) {
+      console.log("User not authenticated, skipping data fetch");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      console.log("Fetching data...");
+      console.log("Fetching data for authenticated user...");
 
-      // Fetch servers and routes in parallel
-      const [serversResponse, rulesResponse] = await Promise.all([
-        fetch("/api/servers"),
-        fetch("/api/rules"),
-      ]);
-
-      if (!rulesResponse.ok) {
-        throw new Error("Failed to fetch routes from SSH server");
-      }
-
+      // Fetch servers and rules in parallel using the API utility
       const [serversData, rulesData] = await Promise.all([
-        serversResponse.json(),
-        rulesResponse.json(),
+        api.get("api/servers"),
+        api.get("api/rules"),
       ]);
 
       console.log("Rules data received:", rulesData);
@@ -50,7 +51,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       setServers(serversData.data);
 
-      // Extract routes from the SSH response
+      // Extract routes from the API response
       const routes = rulesData.data?.SyncResponse?.Routes || [];
       console.log("Extracted routes:", routes);
 
@@ -63,9 +64,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Only fetch data when authentication is complete and user is authenticated
   useEffect(() => {
-    refreshData();
-  }, []);
+    if (authLoading) {
+      console.log("Auth still loading, waiting...");
+      return;
+    }
+
+    if (isAuthenticated) {
+      console.log("User authenticated, fetching data...");
+      refreshData();
+    } else {
+      console.log("User not authenticated, clearing data...");
+      setServers([]);
+      setRoutes([]);
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading]);
 
   return (
     <DataContext.Provider value={{ servers, routes, loading, refreshData }}>

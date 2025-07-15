@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rm -rf .next",
+    "clean-build": "npm run clean && npm run build"
   },
   "dependencies": {
     "@mantine/core": "^7.16.0",
@@ -20,7 +22,6 @@
     "next": "15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "ssh2": "^1.16.0",
     "uuid": "^11.0.5"
   },
   "devDependencies": {

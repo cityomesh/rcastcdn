@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   MultiSelect,
-  Select,
   Paper,
   Group,
   Skeleton,
-  Divider,
   Text,
   Stack,
   Alert,
+  TextInput,
+  Box,
+  Title,
 } from "@mantine/core";
 import { v4 as uuidv4 } from "uuid";
 import { useData } from "@/app/contexts/DataContext";
-import { ComboboxItem } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { StreamType } from "@/app/types/server";
 
@@ -38,31 +38,56 @@ interface RouteServerFormProps {
   onSubmit: (values: RouteServerAssignment) => void;
 }
 
-interface RouteOption {
-  value: string;
-  label: string;
-}
-
 interface ValidationErrors {
-  from?: string;
-  to?: string;
+  originUrl?: string;
   servers?: string;
   route_kind?: string;
   general?: string;
 }
 
 export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
-  const { routes, servers, loading } = useData();
-  const [selectedRoute, setSelectedRoute] = useState("");
+  const { servers, loading } = useData();
+  const [originUrl, setOriginUrl] = useState("");
   const [selectedServerIds, setSelectedServerIds] = useState<string[]>([]);
-  const [selectedRouteKind, setSelectedRouteKind] = useState<string>("");
+  const [selectedRouteKind, setSelectedRouteKind] = useState<string>(
+    StreamType.HLS
+  );
+  const [edgeStreamExample, setEdgeStreamExample] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
   );
 
-  const handleRouteChange = (value: string | null) => {
-    setSelectedRoute(value || "");
+  // Update stream examples when origin URL or selected servers change
+  useEffect(() => {
+    if (originUrl && selectedServerIds.length > 0) {
+      try {
+        const url = new URL(originUrl);
+        const path = url.pathname;
+
+        // Get the first selected server for the example
+        const firstServerId = selectedServerIds[0];
+        const firstServer = servers.find((s) => s.id === firstServerId);
+
+        if (path && firstServer) {
+          const serverUrl = `http://${firstServer.ipAddress}:${firstServer.port}`;
+          setEdgeStreamExample(`${serverUrl}${path}`);
+        } else {
+          setEdgeStreamExample("");
+        }
+      } catch {
+        // Invalid URL, clear the example
+        setEdgeStreamExample("");
+      }
+    } else {
+      setEdgeStreamExample("");
+    }
+  }, [originUrl, selectedServerIds, servers]);
+
+  const handleOriginUrlChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setOriginUrl(event.currentTarget.value);
     setValidationErrors({});
   };
 
@@ -71,49 +96,32 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     setValidationErrors({});
   };
 
-  const handleRouteKindChange = (value: string | null) => {
-    setSelectedRouteKind(value || "");
-    setValidationErrors({});
-  };
-
-  const validateRouteAssignment = (
-    values: RouteServerAssignment
-  ): ValidationErrors => {
+  const validateRouteAssignment = (): ValidationErrors => {
     const errors: ValidationErrors = {};
 
-    // 1. Validate route kind
-    if (!Object.values(StreamType).includes(values.route_kind as StreamType)) {
+    // Validate origin URL
+    if (!originUrl) {
+      errors.originUrl = "Origin stream URL is required";
+      return errors;
+    }
+
+    try {
+      new URL(originUrl);
+    } catch {
+      errors.originUrl = "Invalid URL format";
+      return errors;
+    }
+
+    // Validate servers
+    if (selectedServerIds.length === 0) {
+      errors.servers = "At least one server must be selected";
+      return errors;
+    }
+
+    // Validate stream type
+    if (!Object.values(StreamType).includes(selectedRouteKind as StreamType)) {
       errors.route_kind = "Invalid stream type selected";
       return errors;
-    }
-
-    // 2. Find matching route
-    const matchingRoute = routes.find((route) => route.path === values.from);
-    if (!matchingRoute) {
-      errors.from = "No matching route found";
-      return errors;
-    }
-
-    // 3. Validate 'to' field matches origin
-    const expectedTo = `${matchingRoute.origin}${matchingRoute.origin_path}`;
-    if (values.to !== expectedTo) {
-      errors.to = "Origin path mismatch";
-      return errors;
-    }
-
-    // 4. Validate servers have correct origin configuration
-    for (const serverRef of values.servers) {
-      const fullServer = servers.find((s) => s.id === serverRef.id);
-      if (!fullServer) {
-        errors.servers = "Server not found";
-        return errors;
-      }
-
-      const [originIp] = fullServer.originIpWithPort.split(":");
-      if (!matchingRoute.origin.includes(originIp)) {
-        errors.servers = `Server ${fullServer.displayName} has mismatched origin IP`;
-        return errors;
-      }
     }
 
     return errors;
@@ -122,18 +130,21 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !selectedRoute ||
-      selectedServerIds.length === 0 ||
-      !selectedRouteKind
-    ) {
+    // Validate form
+    const errors = validateRouteAssignment();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return;
     }
 
     try {
       setSubmitting(true);
-      const [from, to] = selectedRoute.split("|");
 
+      // Parse the origin URL to extract components
+      const url = new URL(originUrl);
+      const path = url.pathname;
+
+      // Extract server info
       const selectedServers = selectedServerIds.map((id) => {
         const server = servers.find((s) => s.id === id);
         if (!server) throw new Error(`Server not found: ${id}`);
@@ -146,27 +157,23 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
         };
       });
 
+      // Prepare data in the format expected by the API
       const formattedData = {
         id: uuidv4(),
         priority: 0,
         route_kind: selectedRouteKind,
-        from,
-        to,
+        from: path, // The path part of the URL
+        to: originUrl, // The full origin URL
         servers: selectedServers,
       };
-
-      const errors = validateRouteAssignment(formattedData);
-      if (Object.keys(errors).length > 0) {
-        setValidationErrors(errors);
-        return;
-      }
 
       await onSubmit(formattedData);
 
       // Reset form
-      setSelectedRoute("");
+      setOriginUrl("");
       setSelectedServerIds([]);
-      setSelectedRouteKind("");
+      setSelectedRouteKind(StreamType.HLS);
+      setEdgeStreamExample("");
       setValidationErrors({});
     } catch (error) {
       setValidationErrors({
@@ -177,7 +184,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     }
   };
 
-  if (loading || !routes || !servers) {
+  if (loading || !servers) {
     return (
       <Paper p="md" withBorder>
         <Skeleton height={70} mb="md" />
@@ -191,138 +198,82 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     );
   }
 
-  console.log("Routes data received:", routes);
-
-  // First, deduplicate routes based on path and origin
-  const uniqueRoutes = new Map();
-  routes.forEach((route) => {
-    const key = `${route.path}|${route.origin}${route.origin_path}`;
-    if (!uniqueRoutes.has(key)) {
-      uniqueRoutes.set(key, route);
-    }
-  });
-
-  console.log("Unique routes:", Array.from(uniqueRoutes.values()));
-
-  // Group unique routes by host
-  const routesByHost = Array.from(uniqueRoutes.values()).reduce(
-    (acc, route) => {
-      const host = route.host || "No Host";
-      if (!acc[host]) {
-        acc[host] = [];
-      }
-      acc[host].push({
-        value: `${route.path}|${route.origin}${route.origin_path}`,
-        label: `${route.path} → ${route.origin}${route.origin_path}`,
-      });
-      return acc;
-    },
-    {} as Record<string, RouteOption[]>
-  );
-
-  console.log("Routes by host:", routesByHost);
-
-  // Convert to Mantine's group format
-  const routeOptions = Object.entries(routesByHost).map(([host, items]) => ({
-    group: host,
-    items: items as ComboboxItem[],
-  }));
-
   const serverOptions = servers.map((server) => ({
     value: server.id,
-    label: server.displayName,
+    label: `${server.displayName} (${server.serverType})`,
     description: `${server.ipAddress}:${server.port}`,
-  }));
-
-  const streamTypeOptions = Object.values(StreamType).map((type) => ({
-    value: type,
-    label: type,
   }));
 
   return (
     <form onSubmit={handleSubmit}>
-      <Stack gap="md">
+      <Stack gap="xl">
+        <Title order={3}>Re-streaming setup wizard</Title>
+
         {validationErrors.general && (
           <Alert icon={<IconAlertCircle size={16} />} color="red">
             {validationErrors.general}
           </Alert>
         )}
 
-        <Select
-          label="Select Route"
-          description="Choose a route to assign servers to"
-          placeholder="Choose a route"
-          data={routeOptions}
-          value={selectedRoute}
-          onChange={handleRouteChange}
-          searchable
-          required
-          clearable
-          maxDropdownHeight={400}
-          nothingFoundMessage="No routes found"
-          error={
-            validationErrors.from ||
-            (!selectedRoute ? "Route is required" : null)
-          }
-          mb="md"
-        />
+        <Box>
+          <Title order={4}>1. Origin stream URL:</Title>
+          <TextInput
+            placeholder="e.g. http://origin.server:8080/application/mystream/playlist.m3u8"
+            value={originUrl}
+            onChange={handleOriginUrlChange}
+            error={validationErrors.originUrl}
+            required
+            mt="xs"
+          />
+        </Box>
 
-        <Select
-          label="Stream Type"
-          description="Select the type of stream"
-          placeholder="Choose stream type"
-          data={streamTypeOptions}
-          value={selectedRouteKind}
-          onChange={handleRouteKindChange}
-          required
-          clearable
-          error={
-            validationErrors.route_kind ||
-            (!selectedRouteKind ? "Stream type is required" : null)
-          }
-          mb="md"
-        />
+        <Box>
+          <Title order={4}>2. Select servers:</Title>
+          <MultiSelect
+            placeholder="Choose servers"
+            data={serverOptions}
+            value={selectedServerIds}
+            onChange={handleServerChange}
+            searchable
+            required
+            clearable
+            maxDropdownHeight={400}
+            nothingFoundMessage="No servers found"
+            error={validationErrors.servers}
+            mt="xs"
+          />
+        </Box>
 
-        <Divider my="md" variant="dashed" />
+        <Box>
+          <Title order={4}>3. Stream URL example:</Title>
+          {edgeStreamExample ? (
+            <div>
+              <Text mt="xs">{edgeStreamExample}</Text>
+              {selectedServerIds.length > 1 && (
+                <Text size="sm" c="dimmed" mt="xs">
+                  Similar URLs will be available on all{" "}
+                  {selectedServerIds.length} selected servers
+                </Text>
+              )}
+            </div>
+          ) : (
+            <Text mt="xs" c="dimmed">
+              Please enter a valid origin stream URL and select at least one
+              server to see the stream URL example.
+            </Text>
+          )}
+        </Box>
 
-        <MultiSelect
-          label="Select Servers"
-          description="Choose one or more servers to handle this route"
-          placeholder="Choose servers"
-          data={serverOptions}
-          value={selectedServerIds}
-          onChange={handleServerChange}
-          searchable
-          required
-          clearable
-          maxDropdownHeight={400}
-          nothingFoundMessage="No servers found"
-          error={
-            validationErrors.servers ||
-            (selectedServerIds.length === 0
-              ? "At least one server must be selected"
-              : null)
-          }
-          mb="md"
-        />
-
-        {validationErrors.to && (
-          <Text c="red" size="sm">
-            {validationErrors.to}
-          </Text>
-        )}
-
-        <Group justify="flex-end" mt="xl">
+        <Group justify="space-between" mt="xl">
+          <Button variant="outline" onClick={() => window.history.back()}>
+            Cancel
+          </Button>
           <Button
             type="submit"
             loading={submitting}
-            disabled={
-              !selectedRoute ||
-              selectedServerIds.length === 0 ||
-              !selectedRouteKind
-            }
+            disabled={!originUrl || selectedServerIds.length === 0}
           >
-            Create Assignment
+            Create re-streaming route
           </Button>
         </Group>
       </Stack>

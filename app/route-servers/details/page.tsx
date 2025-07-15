@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Container,
@@ -18,13 +18,17 @@ import {
 } from "@mantine/core";
 import { IconArrowLeft, IconPencil, IconTrash } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
-import { RouteServerAssignment } from "@/app/components/NimbleHomeContent/nimble-home-content.types";
+// import { RouteServerAssignment } from "@/app/types/server";
+import { api } from "@/app/utils/api";
+import { RouteServerAssignment } from "@/app/types/server";
 
-export default function RouteServerDetailPage() {
+// Create a component to use search params
+function RouteServerDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [assignment, setAssignment] = useState<RouteServerAssignment | null>(
     null
   );
@@ -39,8 +43,7 @@ export default function RouteServerDetailPage() {
       try {
         setLoading(true);
         // Fetch the assignments and find the one with matching ID
-        const response = await fetch("/api/route-servers");
-        const result = await response.json();
+        const result = await api.get("api/route-servers");
 
         if (result.success) {
           const assignment = result.data.find(
@@ -88,14 +91,26 @@ export default function RouteServerDetailPage() {
     if (!id || !assignment) return;
 
     try {
-      const response = await fetch(`/api/route-servers?id=${id}`, {
-        method: "DELETE",
-      });
+      setDeleting(true);
 
-      if (response.ok) {
+      let result;
+      if (assignment.source === "rules_conf") {
+        // For rules.conf entries, pass the path as a query parameter
+        result = await api.delete(
+          `api/route-servers/${id}?path=${encodeURIComponent(assignment.from)}`
+        );
+      } else {
+        // For local assignments
+        result = await api.delete(`api/route-servers/${id}`);
+      }
+
+      if (result.success) {
         notifications.show({
           title: "Success",
-          message: "Assignment deleted successfully",
+          message:
+            assignment.source === "rules_conf"
+              ? "Configuration rule deleted successfully"
+              : "Assignment deleted successfully",
           color: "green",
         });
         router.push("/");
@@ -113,6 +128,8 @@ export default function RouteServerDetailPage() {
         message: "An error occurred while deleting",
         color: "red",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -154,16 +171,23 @@ export default function RouteServerDetailPage() {
               leftSection={<IconArrowLeft size={14} />}
               variant="outline"
               onClick={() => router.push("/")}
+              disabled={deleting}
             >
               Back
             </Button>
-            <Button leftSection={<IconPencil size={14} />} onClick={handleEdit}>
+            <Button
+              leftSection={<IconPencil size={14} />}
+              onClick={handleEdit}
+              disabled={deleting}
+            >
               Edit
             </Button>
             <Button
               leftSection={<IconTrash size={14} />}
               color="red"
               onClick={handleDelete}
+              loading={deleting}
+              disabled={deleting}
             >
               Delete
             </Button>
@@ -173,6 +197,19 @@ export default function RouteServerDetailPage() {
         <Divider mb="md" />
 
         <Stack gap="md">
+          <Group>
+            <Text fw={700} w={150}>
+              Source:
+            </Text>
+            <Badge
+              color={assignment.source === "rules_conf" ? "orange" : "blue"}
+            >
+              {assignment.source === "rules_conf"
+                ? "Config File"
+                : "UI Created"}
+            </Badge>
+          </Group>
+
           <Group>
             <Text fw={700} w={150}>
               Route Kind:
@@ -216,5 +253,23 @@ export default function RouteServerDetailPage() {
         </Stack>
       </Paper>
     </Container>
+  );
+}
+
+// Main page component with Suspense
+export default function RouteServerDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <Container size="md" py="xl">
+          <Stack align="center" justify="center" h="60vh">
+            <Loader size="lg" />
+            <Text>Loading...</Text>
+          </Stack>
+        </Container>
+      }
+    >
+      <RouteServerDetail />
+    </Suspense>
   );
 }
