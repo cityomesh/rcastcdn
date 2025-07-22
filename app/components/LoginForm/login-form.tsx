@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   TextInput,
   PasswordInput,
@@ -53,17 +54,24 @@ export const LoginForm = () => {
   };
 
   return (
-    <Container size="xs" style={{ height: "100vh" }}>
+    <Container size="sm" style={{ height: "100vh" }}>
       <Center style={{ height: "100%" }}>
-        <Box style={{ width: "100%" }}>
-          <Paper shadow="md" p="xl" radius="md" withBorder>
-            <Stack>
+        <Box style={{ width: "100%", maxWidth: "480px" }}>
+          <Paper shadow="xl" p="2rem" radius="lg" withBorder>
+            <Stack gap="xl">
               <Center>
-                <Title order={2} ta="center" mb="md">
-                  ULKA CDN
-                </Title>
+                <Box mb="lg">
+                  <Image
+                    src="/rcast_logo.jpg"
+                    alt="RCast Logo"
+                    width={320}
+                    height={120}
+                    style={{ objectFit: "contain" }}
+                    priority
+                  />
+                </Box>
               </Center>
-              <Title order={3} ta="center" mb="xl" c="dimmed">
+              <Title order={3} ta="center" mb="lg" c="dimmed" fw={400}>
                 Please sign in to continue
               </Title>
 
@@ -79,11 +87,12 @@ export const LoginForm = () => {
               )}
 
               <form onSubmit={form.onSubmit(handleSubmit)}>
-                <Stack>
+                <Stack gap="lg">
                   <TextInput
                     label="Username"
                     placeholder="Enter your username"
                     required
+                    size="md"
                     {...form.getInputProps("username")}
                   />
 
@@ -91,6 +100,7 @@ export const LoginForm = () => {
                     label="Password"
                     placeholder="Enter your password"
                     required
+                    size="md"
                     {...form.getInputProps("password")}
                   />
 
@@ -100,6 +110,8 @@ export const LoginForm = () => {
                     leftSection={<IconLogin size="1rem" />}
                     fullWidth
                     mt="md"
+                    size="md"
+                    radius="md"
                   >
                     Sign In
                   </Button>
