@@ -36,7 +36,9 @@ export const ServersTable = ({
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
+  const [selectedServers, setSelectedServers] = useState<Server[]>([]);
 
+  // ✅ Get parent server name
   const getParentServerName = useCallback(
     (parentId: string | undefined) => {
       if (!parentId) return "None";
@@ -46,14 +48,22 @@ export const ServersTable = ({
     [data]
   );
 
+  // ✅ When there are no servers
   const NoRowsOverlay = () => (
     <Text size="lg" c="dimmed" ta="center" py="xl">
-      No servers found. Click the &quot;Add Server&quot; button above to create
-      one.
+      No servers found. Click the &quot;Add Server&quot; button above to create one.
     </Text>
   );
 
+  // ✅ AG Grid Columns
   const columnDefs: ColDef[] = [
+    {
+      headerName: "",
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      width: 50,
+      pinned: "left",
+    },
     {
       headerName: "Display Name",
       field: "displayName",
@@ -65,7 +75,6 @@ export const ServersTable = ({
       field: "serverType",
       width: 130,
       sortable: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       cellRenderer: (params: any) => (
         <Group gap="xs" wrap="nowrap" align="center" style={{ height: "100%" }}>
           {params.value === "origin" ? (
@@ -82,10 +91,8 @@ export const ServersTable = ({
       field: "parentServerId",
       width: 150,
       sortable: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       valueGetter: (params: any) =>
         getParentServerName(params.data.parentServerId),
-      hide: false,
     },
     {
       headerName: "IP Address",
@@ -109,7 +116,6 @@ export const ServersTable = ({
       headerName: "Status",
       field: "status",
       width: 120,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       cellRenderer: (params: any) => (
         <Badge
           color={
@@ -129,7 +135,6 @@ export const ServersTable = ({
       field: "lastChecked",
       flex: 1,
       sortable: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       valueFormatter: (params: any) => {
         if (!params.value) return "Never";
         return new Date(params.value).toLocaleString();
@@ -139,20 +144,13 @@ export const ServersTable = ({
       headerName: "Actions",
       field: "actions",
       width: 200,
-      minWidth: 180,
       pinned: "right",
-      suppressSizeToFit: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       cellRenderer: (params: any) => (
         <Group gap="xs" align="center" style={{ height: "100%" }}>
-          <ActionIcon
-            color="blue"
-            onClick={() => onCheckHealth(params.data.id)}
-          >
+          <ActionIcon color="blue" onClick={() => onCheckHealth(params.data.id)}>
             <IconRefresh size={18} />
           </ActionIcon>
           <ActionIcon
-            // variant="subtle"
             color="blue"
             onClick={() => {
               setSelectedServer(params.data);
@@ -162,7 +160,6 @@ export const ServersTable = ({
             <IconEdit size={18} />
           </ActionIcon>
           <ActionIcon
-            // variant="subtle"
             color="red"
             onClick={() => onDeleteServer(params.data.id)}
           >
@@ -173,9 +170,38 @@ export const ServersTable = ({
     },
   ];
 
+  // ✅ On row selection change
+  const onSelectionChanged = useCallback((event: any) => {
+    const selected = event.api.getSelectedRows();
+    setSelectedServers(selected);
+  }, []);
+
+  // ✅ Apply Restart Command
+  const handleApplyCommand = async () => {
+    if (selectedServers.length === 0) return;
+
+    try {
+      for (const server of selectedServers) {
+        // You can replace this fetch URL with your backend API endpoint
+        await fetch("/api/restart-server", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ serverId: server.id }),
+        });
+      }
+
+      alert("Restart command applied successfully to selected servers!");
+      setSelectedServers([]);
+    } catch (error) {
+      console.error("Error applying restart command:", error);
+      alert("Failed to apply restart command.");
+    }
+  };
+
   return (
     <>
-      <Group justify="flex-end" mb="md">
+      {/* Top Button */}
+      <Group justify="space-between" mb="md">
         <Button
           leftSection={<IconPlus size={16} />}
           onClick={() => setCreateModalOpen(true)}
@@ -195,22 +221,36 @@ export const ServersTable = ({
         >
           Add Server
         </Button>
+
+        {/* ✅ Apply Button visible only when servers selected */}
+        {selectedServers.length > 0 && (
+          <Button
+            variant="filled"
+            color="green"
+            onClick={handleApplyCommand}
+            leftSection={<IconRefresh size={16} />}
+          >
+            Apply Restart Command ({selectedServers.length})
+          </Button>
+        )}
       </Group>
 
+      {/* AG Grid Table */}
       <AgGridTable
         data={data}
         columnDefs={columnDefs}
         height="600px"
         gridOptions={{
+          rowSelection: "multiple",
+          onSelectionChanged,
           rowStyle: { cursor: "pointer" },
-          defaultColDef: {
-            headerClass: "custom-header",
-          },
+          defaultColDef: { headerClass: "custom-header" },
           noRowsOverlayComponent: NoRowsOverlay,
         }}
         theme="alpine"
       />
 
+      {/* Add Server Form */}
       <ServerForm
         opened={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
@@ -221,6 +261,7 @@ export const ServersTable = ({
         }}
       />
 
+      {/* Edit Server Form */}
       <ServerForm
         opened={editModalOpen}
         onClose={() => {

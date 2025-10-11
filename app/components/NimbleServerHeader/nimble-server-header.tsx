@@ -81,7 +81,7 @@ export const NimbleServerHeader = () => {
           <Link href="/" style={{ textDecoration: "none" }}>
             <Group gap="sm">
               <Title order={2} c="white" fw={600}>
-                ULKA CDN
+                RCAST CDN
               </Title>
               <Text c="rgba(255,255,255,0.8)" size="sm" fw={500}>
                 Management System
