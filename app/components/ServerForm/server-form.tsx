@@ -251,7 +251,7 @@ export function ServerForm({
                   }}
                 />
 
-                <Select
+                {/* <Select
                   required
                   label={<Text fw={500}>Server Type</Text>}
                   placeholder="Select server type"
@@ -287,7 +287,7 @@ export function ServerForm({
                       form.setFieldValue("parentServerId", undefined);
                     }
                   }}
-                />
+                /> */}
 
                 {showParentSelection && (
                   <Select
@@ -448,7 +448,7 @@ export function ServerForm({
                   }}
                 />
 
-                <PasswordInput
+                {/* <PasswordInput
                   required
                   label={<Text fw={500}>SSH Password</Text>}
                   placeholder="Enter SSH password"
@@ -470,7 +470,61 @@ export function ServerForm({
                       marginBottom: 4,
                     },
                   }}
+                /> */}
+
+
+                <PasswordInput
+                  required
+                  label={<Text fw={500}>SSH Password</Text>}
+                  placeholder="Enter SSH password"
+                  leftSection={<IconLock size={16} />}
+                  {...form.getInputProps("sshPassword")}
+                  description={
+                    <Text component="span" size="xs" c="dimmed">
+                      Password for SSH authentication
+                    </Text>
+                  }
+                  visibilityToggleIcon={() => null} // ✅ hides the eye icon completely
+                  styles={{
+                    input: {
+                      "&:focus": {
+                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)",
+                      },
+                      fontSize: "0.95rem",
+                    },
+                    label: {
+                      marginBottom: 4,
+                    },
+                  }}
                 />
+
+
+
+
+                {/* <PasswordInput
+                  required
+                  label={<Text fw={500}>SSH Password</Text>}
+                  placeholder="Enter SSH password"
+                  leftSection={<IconLock size={16} />}
+                  visibilityToggleIcon={() => null} // ✅ hide the eye icon completely
+                  {...form.getInputProps("sshPassword")}
+                  description={
+                    <Text component="span" size="xs" c="dimmed">
+                      Password for SSH authentication
+                    </Text>
+                  }
+                  styles={{
+                    input: {
+                      "&:focus": {
+                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)",
+                      },
+                      fontSize: "0.95rem",
+                    },
+                    label: {
+                      marginBottom: 4,
+                    },
+                  }}
+                /> */}
 
                 <Alert icon={<IconAlertCircle size={16} />} color="blue">
                   <Text size="sm" mb={8} fw={500}>

@@ -20,8 +20,10 @@
     "ag-grid-community": "^32.3.2",
     "ag-grid-react": "^32.3.2",
     "next": "15.1.4",
+    "node-ssh": "^13.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "ssh2": "^1.17.0",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
