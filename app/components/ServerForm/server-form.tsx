@@ -488,9 +488,12 @@ export function ServerForm({
                   styles={{
                     input: {
                       "&:focus": {
-                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)",
+                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)", // focus shadow
                       },
                       fontSize: "0.95rem",
+                      "&::selection": {
+                        background: "rgba(0,0,0,0.1)", // subtle selection
+                      },
                     },
                     label: {
                       marginBottom: 4,

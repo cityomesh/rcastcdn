@@ -829,7 +829,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
         </Box>
 
         {/* 🔹 Example URL */}
-        <Box>
+        {/* <Box>
           <Title order={4}>3. Stream URL example:</Title>
           {edgeStreamExample ? (
             <div>
@@ -847,7 +847,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
               see an example.
             </Text>
           )}
-        </Box>
+        </Box> */}
 
         {/* 🔹 Buttons */}
         <Group justify="space-between" mt="xl">
