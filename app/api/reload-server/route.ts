@@ -38,57 +38,7 @@
 //   }
 // }
 
-
-
-// import { NextResponse } from "next/server";
-// import { exec } from "child_process";
-// import util from "util";
-
-// const execPromise = util.promisify(exec);
-
-// export async function POST(req: Request) {
-//   try {
-//     const { ipAddress, sshUsername, sshPrivateKeyPath, serviceName, port } = await req.json();
-
-//     if (!ipAddress || !sshUsername || !sshPrivateKeyPath || !serviceName) {
-//       return NextResponse.json({ success: false, error: "Missing required parameters." }, { status: 400 });
-//     }
-
-//     // ✅ Use dynamic SSH port (default to 22)
-//     const sshPort = port || 22;
-
-//     const command = `ssh -i ${sshPrivateKeyPath} -p ${sshPort} -o StrictHostKeyChecking=no ${sshUsername}@${ipAddress} "sudo service ${serviceName} restart"`;
-
-//     console.log("Running SSH command:", command);
-
-//     const { stdout, stderr } = await execPromise(command);
-
-//     if (stderr) {
-//       console.error("SSH stderr:", stderr);
-//     }
-
-//     console.log("SSH stdout:", stdout);
-
-//     return NextResponse.json({
-//       success: true,
-//       message: `Service '${serviceName}' restarted successfully.`,
-//       stdout,
-//       stderr,
-//     });
-//   } catch (error: any) {
-//     console.error("Error executing SSH command:", error);
-//     return NextResponse.json(
-//       {
-//         success: false,
-//         error: error.message || "Unknown error",
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-// // /app/api/reload-server/route.ts
+// //app/api/reload-server/route.ts
 // import { NextRequest, NextResponse } from "next/server";
 // import { NodeSSH } from "node-ssh";
 
@@ -96,9 +46,9 @@
 //   const ssh = new NodeSSH();
 
 //   try {
-//     const { ipAddress, port, sshUsername, sshPassword, serviceName } = await req.json();
+//     const { serverId, ipAddress, port, sshUsername, sshPassword, serviceName } = await req.json();
 
-//     if (!ipAddress || !sshUsername || !sshPassword || !serviceName) {
+//     if (!serverId || !ipAddress || !sshUsername || !sshPassword || !serviceName) {
 //       return NextResponse.json(
 //         { success: false, error: "Missing required parameters" },
 //         { status: 400 }
@@ -123,23 +73,32 @@
 //       );
 //     }
 
-//     return NextResponse.json({ success: true, output: result.stdout });
+//     console.log(`Server ${serverId} (${ipAddress}) restarted successfully`);
+
+//     // Ikkada output empty avvatledu, command message send chestunnam
+//     return NextResponse.json({ 
+//       success: true, 
+//       output: `Command "${command}" executed successfully on ${ipAddress}` 
+//     });
 //   } catch (error: any) {
+//     console.error("SSH restart error:", error);
 //     return NextResponse.json(
-//       { success: false, error: error.message },
+//       { success: false, error: error.message || "SSH restart failed" },
 //       { status: 500 }
 //     );
 //   }
 // }
 
-//app/api/reload-server/route.ts
+
+// app/api/reload-server/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { NodeSSH } from "node-ssh";
 
 export async function POST(req: NextRequest) {
-  const ssh = new NodeSSH();
-
   try {
+    // ✅ Dynamic import (only when API executes, not during build)
+    const { NodeSSH } = await import("node-ssh");
+    const ssh = new NodeSSH();
+
     const { serverId, ipAddress, port, sshUsername, sshPassword, serviceName } = await req.json();
 
     if (!serverId || !ipAddress || !sshUsername || !sshPassword || !serviceName) {
@@ -169,10 +128,9 @@ export async function POST(req: NextRequest) {
 
     console.log(`Server ${serverId} (${ipAddress}) restarted successfully`);
 
-    // Ikkada output empty avvatledu, command message send chestunnam
-    return NextResponse.json({ 
-      success: true, 
-      output: `Command "${command}" executed successfully on ${ipAddress}` 
+    return NextResponse.json({
+      success: true,
+      output: `Command "${command}" executed successfully on ${ipAddress}`,
     });
   } catch (error: any) {
     console.error("SSH restart error:", error);
