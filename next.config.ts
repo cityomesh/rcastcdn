@@ -5,17 +5,18 @@ const nextConfig: NextConfig = {
     {
       source: "/api/rules",
       headers: [
-        {
-          key: "X-Frame-Options",
-          value: "DENY",
-        },
-        {
-          key: "X-Content-Type-Options",
-          value: "nosniff",
-        },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
       ],
     },
   ],
+
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), "ssh2"];
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
