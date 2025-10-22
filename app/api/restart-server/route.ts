@@ -38,50 +38,6 @@
 //   }
 // }
 
-
-// // import { NextResponse } from "next/server";
-
-// // export async function POST(request: Request) {
-// //   try {
-// //     const { ipAddress } = await request.json();
-
-// //     if (!ipAddress) {
-// //       return NextResponse.json(
-// //         { success: false, message: "IP Address missing" },
-// //         { status: 400 }
-// //       );
-// //     }
-
-// //     // Nimble Streamer Config Reload URL
-// //     const reloadConfigUrl = `http://${ipAddress}:8083/manage/reload_config`;
-
-// //     // POST to Nimble Streamer directly
-// //     const response = await fetch(reloadConfigUrl, {
-// //       method: "POST",
-// //     });
-
-// //     if (!response.ok) {
-// //       throw new Error(`Reload failed with status ${response.status}`);
-// //     }
-
-// //     // ✅ If you want also SSL reload, uncomment this:
-// //     // const reloadSSLUrl = `http://${ipAddress}:8082/manage/reload_ssl_certificates`;
-// //     // await fetch(reloadSSLUrl, { method: "POST" });
-
-// //     return NextResponse.json({
-// //       success: true,
-// //       message: `Config reloaded successfully for ${ipAddress}`,
-// //     });
-// //   } catch (error: any) {
-// //     console.error("Reload Error:", error);
-// //     return NextResponse.json({
-// //       success: false,
-// //       message: error.message || "Reload failed",
-// //     });
-// //   }
-// // }
-
-
 // app/api/restart-server/route.ts
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
