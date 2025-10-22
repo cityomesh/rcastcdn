@@ -23,6 +23,13 @@ interface UlkaTableProps {
   onDataChange?: () => void;
 }
 
+// ✅ Fix the 'any' by adding type to window
+declare global {
+  interface Window {
+    SELECTED_SERVER?: string | null;
+  }
+}
+
 export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
   const router = useRouter();
   const [
@@ -41,12 +48,10 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
 
       let result;
       if (item.source === "rules_conf") {
-        // For rules.conf entries, pass the path as a query parameter
         result = await api.delete(
           `api/route-servers/${item.id}?path=${encodeURIComponent(item.from)}`
         );
       } else {
-        // For local assignments
         result = await api.delete(`api/route-servers/${item.id}`);
       }
 
@@ -61,9 +66,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
           icon: <IconCheck size={18} />,
         });
 
-        if (onDataChange) {
-          onDataChange();
-        }
+        if (onDataChange) onDataChange();
       } else {
         notifications.show({
           title: "Error",
@@ -126,50 +129,36 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       flex: 1.5,
       sortable: true,
     },
-    // {
-    //   headerName: "Assigned servers",
-    //   field: "servers",
-    //   flex: 1,
-    //   sortable: true,
-    //   cellStyle: { color: "#097bd3" },
-    //   valueFormatter: (params: { value: Server[] | undefined }) => {
-    //     if (!params.value) return "";
-    //     return params.value
-    //       .map((server: Server) => server.displayName)
-    //       .join(", ");
-    //   },
-    // },
+    {
+      headerName: "Assigned server",
+      field: "servers",
+      flex: 1,
+      sortable: true,
+      cellStyle: { color: "#097bd3", whiteSpace: "normal" },
+      cellRenderer: (params: { value?: Server[] }) => {
+        if (!params.value || params.value.length === 0) return "";
 
-{
-  headerName: "Assigned server",
-  field: "servers",
-  flex: 1,
-  sortable: true,
-  cellStyle: { color: "#097bd3", whiteSpace: "normal" },
-  cellRenderer: (params: { value: Server[] | undefined }) => {
-    if (!params.value || params.value.length === 0) return "";
+        const selectedServer: string | null =
+          window.SELECTED_SERVER ?? null;
 
-    // get the selected server from parent window
-    // window.SELECTED_SERVER should be set from NimbleHomeContent
-    const selectedServer = (window as any).SELECTED_SERVER || null;
+        return (
+          <div>
+            {params.value.map((server: Server, idx: number) => {
+              const match = server.displayName.match(
+                /\b\d{1,3}(?:\.\d{1,3}){3}\b/
+              );
+              const ip = match ? match[0] : server.displayName;
 
-    return (
-      <div>
-        {params.value.map((server: Server, idx: number) => {
-          const match = server.displayName.match(/\b\d{1,3}(?:\.\d{1,3}){3}\b/);
-          const ip = match ? match[0] : server.displayName;
+              if (!selectedServer || selectedServer === "All Servers" || selectedServer === ip) {
+                return <div key={idx}>{ip}</div>;
+              }
 
-          if (!selectedServer || selectedServer === "All Servers" || selectedServer === ip) {
-            return <div key={idx}>{ip}</div>;
-          }
-
-          return null;
-        })}
-      </div>
-    );
-  },
-},
-
+              return null;
+            })}
+          </div>
+        );
+      },
+    },
     {
       headerName: "Source Server",
       field: "sourceServer",
@@ -177,11 +166,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       sortable: true,
       cellRenderer: (params: {
         data: RouteServerAssignment & {
-          sourceServer?: {
-            displayName: string;
-            ipAddress: string;
-            serverType: string;
-          };
+          sourceServer?: { displayName: string; ipAddress: string; serverType: string };
         };
       }) => {
         const sourceServer = params.data.sourceServer;
@@ -222,11 +207,7 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
               size="sm"
               c={isFromServer ? "green" : isFromConf ? "orange" : "blue"}
             >
-              {isFromServer
-                ? "Server Rules"
-                : isFromConf
-                ? "Config File"
-                : "UI Created"}
+              {isFromServer ? "Server Rules" : isFromConf ? "Config File" : "UI Created"}
             </Text>
           </Group>
         );
@@ -244,7 +225,6 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
         const source = params.data.source;
         const isFromConf = source === "rules_conf";
         const isFromServer = source === "server_rules";
-        // Only disable rules_conf entries, allow server_rules to be edited/deleted
         const isReadOnly = isFromConf;
 
         return (
@@ -315,12 +295,8 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
           height="600px"
           gridOptions={{
             rowStyle: { cursor: "pointer" },
-            defaultColDef: {
-              headerClass: "custom-header",
-            },
-            onRowClicked: (event) => {
-              showDetails(event.data);
-            },
+            defaultColDef: { headerClass: "custom-header" },
+            onRowClicked: (event) => showDetails(event.data),
           }}
           theme="alpine"
         />
