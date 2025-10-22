@@ -285,6 +285,8 @@
 //   );
 // }
 
+
+
 "use client";
 
 import { useState } from "react";
@@ -350,7 +352,6 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
 
   const validateRouteAssignment = (): ValidationErrors => {
     const errors: ValidationErrors = {};
-
     if (originUrls.length === 0) errors.originUrl = "At least one origin URL is required";
 
     for (const url of originUrls) {
@@ -379,6 +380,7 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
     try {
       setSubmitting(true);
 
+      // Selected servers data
       const selectedServers = selectedServerIds.map((id) => {
         const server = servers.find((s) => s.id === id);
         if (!server) throw new Error(`Server not found: ${id}`);
@@ -391,22 +393,44 @@ export default function RouteServerForm({ onSubmit }: RouteServerFormProps) {
         };
       });
 
-      const formattedDataList = originUrls.map((url) => {
+      // Create a route assignment per origin URL
+      // const formattedDataList = originUrls.map((url, index) => {
+      //   const parsedUrl = new URL(url);
+      //   return {
+      //     id: uuidv4(),
+      //     priority: index + 1,
+      //     route_kind: StreamType.HLS,
+      //     from: parsedUrl.pathname,
+      //     to: url,
+      //     servers: selectedServers, // **selected servers only**
+      //   };
+      // });
+
+
+      // ✅ Create a route per origin URL and per selected server
+      const formattedDataList: RouteServerAssignment[] = [];
+
+      originUrls.forEach((url, index) => {
         const parsedUrl = new URL(url);
-        return {
-          id: uuidv4(),
-          priority: 0,
-          route_kind: StreamType.HLS,
-          from: parsedUrl.pathname,
-          to: url,
-          servers: selectedServers,
-        };
+
+        selectedServers.forEach((server) => {
+          formattedDataList.push({
+            id: uuidv4(),
+            priority: index + 1,
+            route_kind: StreamType.HLS,
+            from: parsedUrl.pathname,
+            to: url,
+            servers: [server], // ✅ only one server per route
+          });
+        });
       });
 
+      // Submit all routes
       for (const data of formattedDataList) {
         await onSubmit(data);
       }
 
+      // Reset form
       setOriginUrls([]);
       setSelectedServerIds([]);
       setValidationErrors({});

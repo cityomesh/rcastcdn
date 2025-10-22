@@ -126,19 +126,50 @@ export const UlkaTable = ({ data, onDataChange }: UlkaTableProps) => {
       flex: 1.5,
       sortable: true,
     },
-    {
-      headerName: "Assigned servers",
-      field: "servers",
-      flex: 1,
-      sortable: true,
-      cellStyle: { color: "#097bd3" },
-      valueFormatter: (params: { value: Server[] | undefined }) => {
-        if (!params.value) return "";
-        return params.value
-          .map((server: Server) => server.displayName)
-          .join(", ");
-      },
-    },
+    // {
+    //   headerName: "Assigned servers",
+    //   field: "servers",
+    //   flex: 1,
+    //   sortable: true,
+    //   cellStyle: { color: "#097bd3" },
+    //   valueFormatter: (params: { value: Server[] | undefined }) => {
+    //     if (!params.value) return "";
+    //     return params.value
+    //       .map((server: Server) => server.displayName)
+    //       .join(", ");
+    //   },
+    // },
+
+{
+  headerName: "Assigned server",
+  field: "servers",
+  flex: 1,
+  sortable: true,
+  cellStyle: { color: "#097bd3", whiteSpace: "normal" },
+  cellRenderer: (params: { value: Server[] | undefined }) => {
+    if (!params.value || params.value.length === 0) return "";
+
+    // get the selected server from parent window
+    // window.SELECTED_SERVER should be set from NimbleHomeContent
+    const selectedServer = (window as any).SELECTED_SERVER || null;
+
+    return (
+      <div>
+        {params.value.map((server: Server, idx: number) => {
+          const match = server.displayName.match(/\b\d{1,3}(?:\.\d{1,3}){3}\b/);
+          const ip = match ? match[0] : server.displayName;
+
+          if (!selectedServer || selectedServer === "All Servers" || selectedServer === ip) {
+            return <div key={idx}>{ip}</div>;
+          }
+
+          return null;
+        })}
+      </div>
+    );
+  },
+},
+
     {
       headerName: "Source Server",
       field: "sourceServer",
