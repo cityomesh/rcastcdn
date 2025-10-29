@@ -163,6 +163,23 @@ export function ServerForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues, opened]);
 
+
+  // useEffect(() => {
+  //   if (initialValues && opened) {
+  //     form.setValues({
+  //       displayName: initialValues.displayName || "",
+  //       ipAddress: initialValues.ipAddress || "",
+  //       sshUsername: initialValues.sshUsername || "",
+  //       sshPassword: "", // ✅ Always blank — never pre-fill
+  //       port: initialValues.port || 22,
+  //       originIpWithPort: initialValues.originIpWithPort || "",
+  //       serverType: initialValues.serverType || "origin",
+  //       parentServerId: initialValues.parentServerId,
+  //     });
+  //   }
+  // }, [initialValues, opened]);
+
+
   useEffect(() => {
     const fetchServers = async () => {
       setIsLoading(true);
@@ -472,34 +489,34 @@ export function ServerForm({
                   }}
                 /> */}
 
-
-                <PasswordInput
-                  required
-                  label={<Text fw={500}>SSH Password</Text>}
-                  placeholder="Enter SSH password"
-                  leftSection={<IconLock size={16} />}
-                  {...form.getInputProps("sshPassword")}
-                  description={
-                    <Text component="span" size="xs" c="dimmed">
-                      Password for SSH authentication
-                    </Text>
-                  }
-                  visibilityToggleIcon={() => null} // ✅ hides the eye icon completely
-                  styles={{
-                    input: {
-                      "&:focus": {
-                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)", // focus shadow
-                      },
-                      fontSize: "0.95rem",
-                      "&::selection": {
-                        background: "rgba(0,0,0,0.1)", // subtle selection
-                      },
+              <PasswordInput
+                required
+                label={<Text fw={500}>SSH Password</Text>}
+                placeholder="Enter SSH password"
+                leftSection={<IconLock size={16} />}
+                {...form.getInputProps("sshPassword")}
+                description={
+                  <Text component="span" size="xs" c="dimmed">
+                    Password for SSH authentication
+                  </Text>
+                }
+                visibilityToggleIcon={() => null} // ✅ hides the "eye" icon
+                visibilityToggleButtonProps={{
+                  style: { display: "none" }, // ✅ completely removes visibility toggle button
+                }}
+                type="password" // ✅ ensures it always shows dots (masked)
+                styles={{
+                  input: {
+                    "&:focus": {
+                      boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)",
                     },
-                    label: {
-                      marginBottom: 4,
-                    },
-                  }}
-                />
+                    fontSize: "0.95rem",
+                  },
+                  label: {
+                    marginBottom: 4,
+                  },
+                }}
+              />
 
                 <Alert icon={<IconAlertCircle size={16} />} color="blue">
                   <Text size="sm" mb={8} fw={500}>
