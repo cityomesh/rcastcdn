@@ -489,6 +489,36 @@ export function ServerForm({
                   }}
                 /> */}
 
+
+                {/* <PasswordInput
+                  required
+                  label={<Text fw={500}>SSH Password</Text>}
+                  placeholder="Enter SSH password"
+                  leftSection={<IconLock size={16} />}
+                  {...form.getInputProps("sshPassword")}
+                  description={
+                    <Text component="span" size="xs" c="dimmed">
+                      Password for SSH authentication
+                    </Text>
+                  }
+                  visibilityToggleIcon={() => null} // ✅ hides the eye icon completely
+                  styles={{
+                    input: {
+                      "&:focus": {
+                        boxShadow: "0 0 0 2px rgba(0, 122, 255, 0.1)", // focus shadow
+                      },
+                      fontSize: "0.95rem",
+                      "&::selection": {
+                        background: "rgba(0,0,0,0.1)", // subtle selection
+                      },
+                    },
+                    label: {
+                      marginBottom: 4,
+                    },
+                  }}
+                /> */}
+
+
               <PasswordInput
                 required
                 label={<Text fw={500}>SSH Password</Text>}
